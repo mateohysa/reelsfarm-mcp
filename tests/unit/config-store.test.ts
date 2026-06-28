@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { getConfigPath, loadProfile, saveProfile } from '../../src/auth/config-store.js';
+import { DEFAULT_MCP_SERVER_URL } from '../../src/constants.js';
+import { resolveOptions } from '../../src/transport/connection.js';
 
 const original = process.env.REELSFARM_CONFIG_DIR;
 
@@ -17,5 +19,11 @@ describe('config store', () => {
     saveProfile('default', { apiKey: 'rfmcp_test' });
     expect(loadProfile('default').apiKey).toBe('rfmcp_test');
     expect((statSync(getConfigPath()).mode & 0o777).toString(8)).toBe('600');
+  });
+
+  it('defaults to the dedicated MCP host', () => {
+    process.env.REELSFARM_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'reelsfarm-config-'));
+    expect(DEFAULT_MCP_SERVER_URL).toBe('https://mcp.reelsfarm.com/mcp');
+    expect(resolveOptions().serverUrl).toBe('https://mcp.reelsfarm.com/mcp');
   });
 });

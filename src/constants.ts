@@ -1,4 +1,4 @@
-export const DEFAULT_MCP_SERVER_URL = 'https://reelsfarm.com/mcp';
+export const DEFAULT_MCP_SERVER_URL = 'https://mcp.reelsfarm.com/mcp';
 export const DEFAULT_PROFILE = 'default';
 export const SDK_NAME = 'reelsfarm-mcp-client';
 export const SDK_VERSION = '0.1.0';

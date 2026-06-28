@@ -57,7 +57,7 @@ running discovery commands such as `reelsfarm agent status`,
 
 ## Endpoint
 
-The default MCP endpoint is https://reelsfarm.com/mcp. Pass serverUrl in the
+The default MCP endpoint is https://mcp.reelsfarm.com/mcp. Pass serverUrl in the
 SDK or --server-url in the CLI to target another deployment.
 
 ## Development
