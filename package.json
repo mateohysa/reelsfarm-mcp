@@ -1,0 +1,75 @@
+{
+  "name": "@reelsfarm/mcp-client",
+  "version": "0.1.0",
+  "description": "Typed TypeScript SDK and CLI for the ReelsFarm MCP server.",
+  "type": "module",
+  "license": "MIT",
+  "author": "ReelsFarm",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mateohysa/reelsfarm-mcp.git"
+  },
+  "homepage": "https://github.com/mateohysa/reelsfarm-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/mateohysa/reelsfarm-mcp/issues"
+  },
+  "keywords": [
+    "reelsfarm",
+    "mcp",
+    "sdk",
+    "ugc",
+    "social-media",
+    "typescript"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "reelsfarm": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate:tools": "tsx scripts/generate-tool-manifest.ts",
+    "check:manifest": "tsx scripts/check-tool-manifest.ts",
+    "pack:check": "npm run build && npm pack --dry-run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.2",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^24.10.0",
+    "eslint": "^9.39.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.0",
+    "vitest": "^4.0.15"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
+  }
+}
