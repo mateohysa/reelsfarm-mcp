@@ -1,5 +1,9 @@
-export function printJson(value: unknown): void {
-  process.stdout.write(JSON.stringify(value, null, 2) + '\n');
+export type OutputStream = {
+  write(chunk: string): unknown;
+};
+
+export function printJson(value: unknown, stream: OutputStream = process.stdout): void {
+  stream.write(JSON.stringify(value, null, 2) + '\n');
 }
 
 export function printHuman(value: unknown): void {
@@ -21,7 +25,7 @@ export function printHuman(value: unknown): void {
   console.log(value);
 }
 
-export function output(value: unknown, json = false): void {
-  if (json) printJson(value);
+export function output(value: unknown, json = false, stream: OutputStream = process.stdout): void {
+  if (json) printJson(value, stream);
   else printHuman(value);
 }
