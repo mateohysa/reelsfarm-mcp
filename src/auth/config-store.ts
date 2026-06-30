@@ -2,17 +2,13 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'n
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { DEFAULT_MCP_SERVER_URL, DEFAULT_PROFILE } from '../constants.js';
+import type { TokenStore } from '../types.js';
 
 export interface StoredProfile {
   serverUrl?: string;
   apiKey?: string;
   accessToken?: string;
-  oauth?: {
-    clientInformation?: unknown;
-    tokens?: unknown;
-    codeVerifier?: string;
-    discoveryState?: unknown;
-  };
+  oauth?: Record<string, unknown>;
 }
 
 export interface StoredConfig {
@@ -37,7 +33,9 @@ export function loadConfig(): StoredConfig {
 
 export function saveConfig(config: StoredConfig): void {
   const path = getConfigPath();
-  mkdirSync(getConfigDir(), { recursive: true, mode: 0o700 });
+  const dir = getConfigDir();
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  chmodSync(dir, 0o700);
   writeFileSync(path, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
   chmodSync(path, 0o600);
 }
@@ -63,6 +61,30 @@ export function clearProfile(profileName: string): void {
   const profiles = { ...(config.profiles || {}) };
   delete profiles[profileName];
   saveConfig({ ...config, currentProfile: DEFAULT_PROFILE, profiles });
+}
+
+export function createProfileTokenStore(profileName: string): TokenStore {
+  return {
+    get(key: string): unknown | undefined {
+      return loadProfile(profileName).oauth?.[key];
+    },
+    set(key: string, value: unknown): void {
+      const profile = loadProfile(profileName);
+      saveProfile(profileName, {
+        ...profile,
+        oauth: {
+          ...(profile.oauth || {}),
+          [key]: value,
+        },
+      });
+    },
+    delete(key: string): void {
+      const profile = loadProfile(profileName);
+      const oauth = { ...(profile.oauth || {}) };
+      delete oauth[key];
+      saveProfile(profileName, { ...profile, oauth });
+    },
+  };
 }
 
 export function resolveStoredServerUrl(profile?: string): string {
