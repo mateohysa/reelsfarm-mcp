@@ -18,7 +18,7 @@ import {
 import { DEFAULT_MCP_SERVER_URL, DEFAULT_PROFILE, SDK_VERSION } from '../src/constants.js';
 import { resolveOptions } from '../src/transport/connection.js';
 import { extractStructuredContent } from '../src/utils/result.js';
-import { clearProfile, loadProfile, saveProfile } from '../src/auth/config-store.js';
+import { clearProfile, createProfileTokenStore, loadProfile, saveProfile } from '../src/auth/config-store.js';
 import { agentCommandRegistry, getAgentCommandGroups } from './agent-registry.js';
 import { output, printJson, type OutputStream } from './format.js';
 
@@ -204,7 +204,7 @@ async function runLocal(
   }
 }
 
-function guardDirectDestructive(opts: GlobalOptions, commandName: string): JsonObject | undefined {
+function guardDirectAgentAction(opts: GlobalOptions, commandName: string, kind: 'write' | 'destructive'): JsonObject | undefined {
   if (!isAgentMode(opts)) return undefined;
   const cliCommand = commandName.replace(/\./g, ' ');
   const nextStep = 'Run reelsfarm ' + cliCommand + ' --agent --yes after verifying the target resource.';
@@ -212,14 +212,22 @@ function guardDirectDestructive(opts: GlobalOptions, commandName: string): JsonO
     return {
       dryRun: true,
       skipped: true,
-      reason: 'Agent mode dry-run does not execute direct destructive commands.',
+      reason: 'Agent mode dry-run does not execute direct ' + kind + ' commands.',
       nextStep,
     };
   }
   if (!opts.yes) {
-    throw new AgentSafetyError('Agent mode requires --yes for direct destructive command: ' + commandName, nextStep);
+    throw new AgentSafetyError('Agent mode requires --yes for direct ' + kind + ' command: ' + commandName, nextStep);
   }
   return undefined;
+}
+
+function guardDirectDestructive(opts: GlobalOptions, commandName: string): JsonObject | undefined {
+  return guardDirectAgentAction(opts, commandName, 'destructive');
+}
+
+function guardDirectWrite(opts: GlobalOptions, commandName: string): JsonObject | undefined {
+  return guardDirectAgentAction(opts, commandName, 'write');
 }
 
 function parsePlatforms(value: string): PlatformTarget[] {
@@ -228,6 +236,10 @@ function parsePlatforms(value: string): PlatformTarget[] {
     if (!platformRaw || !connectionId) throw new Error('Platforms must be platform:connectionId pairs');
     return { platform: platformRaw.toUpperCase() as PlatformTarget['platform'], connectionId };
   });
+}
+
+function parseContentType(value: string): string {
+  return value.toUpperCase().replace(/-/g, '_');
 }
 
 async function maybeWait(value: unknown, opts: GlobalOptions): Promise<unknown> {
@@ -288,10 +300,12 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .action(async (opts, command) => {
       const globals = command.optsWithGlobals() as GlobalOptions;
       const profile = globals.profile || DEFAULT_PROFILE;
-      if (opts.apiKey) {
-        saveProfile(profile, { ...loadProfile(profile), apiKey: opts.apiKey, serverUrl: opts.serverUrl });
+      const apiKey = opts.apiKey || globals.apiKey;
+      const serverUrl = opts.serverUrl || globals.serverUrl || DEFAULT_MCP_SERVER_URL;
+      if (apiKey) {
+        saveProfile(profile, { ...loadProfile(profile), apiKey, serverUrl });
         if (isMachineReadable(globals)) {
-          writeResult(command, { stored: true, profile, serverUrl: opts.serverUrl }, globals, buildOptions);
+          writeResult(command, { stored: true, profile, serverUrl }, globals, buildOptions);
         } else {
           (buildOptions.stdout || process.stdout).write('Stored ReelsFarm credentials for profile ' + profile + '\n');
         }
@@ -305,10 +319,11 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       const redirectUri = 'http://127.0.0.1:' + port + '/callback';
       let authUrl = '';
       const clientOptions: ReelsFarmClientOptions = {
-        serverUrl: opts.serverUrl,
+        serverUrl,
         profile,
         oauth: {
           redirectUri,
+          tokenStore: createProfileTokenStore(profile),
           onAuthorizationUrl: (url) => {
             authUrl = url;
             (buildOptions.stdout || process.stdout).write('Open this URL to authorize ReelsFarm:\n' + url + '\n');
@@ -323,7 +338,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       const code = await callback;
       await client.completeOAuth(code);
       await client.close();
-      saveProfile(profile, { ...loadProfile(profile), serverUrl: opts.serverUrl });
+      saveProfile(profile, { ...loadProfile(profile), serverUrl });
       (buildOptions.stdout || process.stdout).write('OAuth login complete for profile ' + profile + '\n');
     });
 
@@ -354,7 +369,11 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const slideshows = program.command('slideshows');
   slideshows.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.slideshows.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   slideshows.command('get').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.slideshows.get(opts.id), buildOptions));
-  slideshows.command('create').requiredOption('--slides-json <json>').option('--title <title>').action((opts, command) => run(command, (client) => client.slideshows.create({ title: opts.title, slides: JSON.parse(opts.slidesJson) }), buildOptions));
+  slideshows.command('create').requiredOption('--slides-json <json>').option('--title <title>').action((opts, command) => run(command, async (client, globals) => {
+    const guarded = guardDirectWrite(globals, 'slideshows.create');
+    if (guarded) return guarded;
+    return client.slideshows.create({ title: opts.title, slides: JSON.parse(opts.slidesJson) });
+  }, buildOptions));
   slideshows.command('generate-text').requiredOption('--prompt <prompt>').option('--type <type>').option('--slide-count <n>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.generateText({ prompt: opts.prompt, slideshowType: opts.type, slideCount: opts.slideCount ? Number(opts.slideCount) : undefined }), globals), buildOptions));
   slideshows.command('finalize').requiredOption('--slideshow-id <id>').option('--slides-json <json>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.finalize({ slideshowId: opts.slideshowId, slides: opts.slidesJson ? JSON.parse(opts.slidesJson) : undefined }), globals), buildOptions));
 
@@ -366,8 +385,8 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   posts.command('list').option('--status <status>').option('--limit <n>').action((opts, command) => run(command, (client) => client.posts.list({ status: opts.status, limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   posts.command('status').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.posts.getStatus(opts.id), buildOptions));
   posts.command('optimal-times').option('--platform <platform>').option('--limit <n>').action((opts, command) => run(command, (client) => client.posts.getOptimalTimes({ platform: opts.platform, limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
-  posts.command('schedule').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--when <date>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.schedule({ contentType: opts.contentType, contentId: opts.contentId, scheduledFor: opts.when, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
-  posts.command('publish-now').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.publishNow({ contentType: opts.contentType, contentId: opts.contentId, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
+  posts.command('schedule').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--when <date>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.schedule({ contentType: parseContentType(opts.contentType), contentId: opts.contentId, scheduledFor: opts.when, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
+  posts.command('publish-now').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.publishNow({ contentType: parseContentType(opts.contentType), contentId: opts.contentId, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
   posts.command('update').requiredOption('--id <id>').option('--when <date>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.update(opts.id, { scheduledFor: opts.when, caption: opts.caption }), buildOptions));
   posts.command('cancel').requiredOption('--id <id>').action((opts, command) => run(command, (client, globals) => {
     const guarded = guardDirectDestructive(globals, 'posts.cancel');
@@ -379,8 +398,16 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const assets = program.command('assets');
   assets.command('list').requiredOption('--category <category>').option('--limit <n>').action((opts, command) => run(command, (client) => client.assets.list(opts.category, { limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   assets.command('search').argument('<query>').option('--category <category>').action((query, opts, command) => run(command, (client) => client.assets.search(query, { category: opts.category }), buildOptions));
-  assets.command('import').requiredOption('--category <category>').requiredOption('--url <url>').option('--name <name>').action((opts, command) => run(command, (client) => client.assets.import({ category: opts.category, url: opts.url, name: opts.name }), buildOptions));
-  assets.command('import-bulk').requiredOption('--category <category>').requiredOption('--items-json <json>').action((opts, command) => run(command, (client) => client.assets.importBulk({ category: opts.category, items: JSON.parse(opts.itemsJson) }), buildOptions));
+  assets.command('import').requiredOption('--category <category>').requiredOption('--url <url>').option('--name <name>').action((opts, command) => run(command, async (client, globals) => {
+    const guarded = guardDirectWrite(globals, 'assets.import');
+    if (guarded) return guarded;
+    return client.assets.import({ category: opts.category, url: opts.url, name: opts.name });
+  }, buildOptions));
+  assets.command('import-bulk').requiredOption('--category <category>').requiredOption('--items-json <json>').action((opts, command) => run(command, async (client, globals) => {
+    const guarded = guardDirectWrite(globals, 'assets.import-bulk');
+    if (guarded) return guarded;
+    return client.assets.importBulk({ category: opts.category, items: JSON.parse(opts.itemsJson) });
+  }, buildOptions));
 
   const automations = program.command('automations');
   automations.command('list').action((_, command) => run(command, (client) => client.automations.list(), buildOptions));
@@ -390,7 +417,11 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
   const webhooks = program.command('webhooks');
   webhooks.command('list').action((_, command) => run(command, (client) => client.webhooks.list(), buildOptions));
-  webhooks.command('create').requiredOption('--url <url>').option('--events <events>').action((opts, command) => run(command, (client) => client.webhooks.create({ url: opts.url, events: opts.events ? String(opts.events).split(',') : undefined }), buildOptions));
+  webhooks.command('create').requiredOption('--url <url>').option('--events <events>').action((opts, command) => run(command, async (client, globals) => {
+    const guarded = guardDirectWrite(globals, 'webhooks.create');
+    if (guarded) return guarded;
+    return client.webhooks.create({ url: opts.url, events: opts.events ? String(opts.events).split(',') : undefined });
+  }, buildOptions));
   webhooks.command('delete').requiredOption('--id <id>').action((opts, command) => run(command, (client, globals) => {
     const guarded = guardDirectDestructive(globals, 'webhooks.delete');
     if (guarded) return Promise.resolve(guarded);

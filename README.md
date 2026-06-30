@@ -37,7 +37,7 @@ ReelsFarm is safe for shell-capable agents when invoked in agent mode:
     reelsfarm agent status
     reelsfarm agent commands
     reelsfarm social connected --agent
-    reelsfarm posts schedule --content-type slideshow --content-id sl_123 --when 2026-07-01T15:00:00Z --platforms tiktok:conn_123 --agent
+    reelsfarm posts schedule --content-type SLIDESHOW --content-id sl_123 --when 2026-07-01T15:00:00Z --platforms tiktok:conn_123 --agent
     reelsfarm confirm conf_123 --agent
 
 Use `--agent` or set `REELSFARM_AGENT_MODE=1` to receive strict JSON envelopes
@@ -50,10 +50,11 @@ summary, then run `reelsfarm confirm <confirmationId> --agent`. Pass `--yes` onl
 when the user has already approved immediate execution. `--dry-run` always wins
 over `--yes`.
 
-Direct destructive commands such as `posts cancel`, `webhooks delete`, and
-`logout` require `--yes` in agent mode. Start every publishing workflow by
-running discovery commands such as `reelsfarm agent status`,
-`reelsfarm agent commands`, and `reelsfarm social connected --agent`.
+Direct write commands such as `assets import`, `slideshows create`, and
+`webhooks create`, plus direct destructive commands such as `posts cancel`,
+`webhooks delete`, and `logout`, require `--yes` in agent mode. Start every
+publishing workflow by running discovery commands such as `reelsfarm agent
+status`, `reelsfarm agent commands`, and `reelsfarm social connected --agent`.
 
 ## Endpoint
 

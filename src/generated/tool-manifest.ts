@@ -113,9 +113,15 @@ const destructiveTools = new Set<string>([
   'prepare_delete_scheduled_post',
 ]);
 
+const readOnlyTools = new Set<string>([
+  'get_generation_pricing',
+  'search_assets',
+  'validate_caption',
+]);
+
 export const toolManifest: ToolManifestEntry[] = toolNames.map((name) => ({
   name,
-  readOnly: name === 'get_generation_pricing' || name.startsWith('get_') || name.startsWith('list_'),
+  readOnly: readOnlyTools.has(name) || name.startsWith('get_') || name.startsWith('list_'),
   destructive: destructiveTools.has(name),
   prepare: name.startsWith('prepare_'),
 }));

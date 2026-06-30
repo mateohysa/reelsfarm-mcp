@@ -35,7 +35,7 @@ function fromTool(
   const tool = toolName ? toolsByName.get(toolName) : undefined;
   const prepareBacked = Boolean(tool?.prepare);
   const destructive = Boolean(details.destructive ?? tool?.destructive);
-  const readOnly = Boolean(tool?.readOnly);
+  const readOnly = details.safety === 'read' || Boolean(tool?.readOnly);
   const safety = details.safety ?? (destructive ? 'destructive' : prepareBacked ? 'prepare' : readOnly ? 'read' : 'write');
   return {
     name,
@@ -124,12 +124,12 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('posts.schedule', 'reelsfarm posts schedule --content-type <type> --content-id <id> --when <date> --platforms <items>', 'Prepare or run scheduled publishing.', 'prepare_schedule_post', {
     requiredFlags: ['--content-type', '--content-id', '--when', '--platforms'],
     optionalFlags: ['--caption', '--yes', '--dry-run'],
-    examples: ['reelsfarm posts schedule --content-type slideshow --content-id sl_123 --when 2026-07-01T15:00:00Z --platforms tiktok:conn_123 --agent'],
+    examples: ['reelsfarm posts schedule --content-type SLIDESHOW --content-id sl_123 --when 2026-07-01T15:00:00Z --platforms tiktok:conn_123 --agent'],
   }),
   fromTool('posts.publish-now', 'reelsfarm posts publish-now --content-type <type> --content-id <id> --platforms <items>', 'Prepare or run immediate publishing.', 'prepare_publish_now', {
     requiredFlags: ['--content-type', '--content-id', '--platforms'],
     optionalFlags: ['--caption', '--yes', '--dry-run'],
-    examples: ['reelsfarm posts publish-now --content-type video --content-id vid_123 --platforms tiktok:conn_123 --agent'],
+    examples: ['reelsfarm posts publish-now --content-type UGC_VIDEO --content-id vid_123 --platforms tiktok:conn_123 --agent'],
   }),
   fromTool('posts.update', 'reelsfarm posts update --id <id> [--when <date>] [--caption <caption>]', 'Prepare or run scheduled post updates.', 'prepare_update_scheduled_post', {
     requiredFlags: ['--id'],
@@ -172,12 +172,12 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('automations.create', 'reelsfarm automations create --json-definition <json>', 'Prepare or run automation creation.', 'prepare_create_automation', {
     requiredFlags: ['--json-definition'],
     optionalFlags: ['--yes', '--dry-run'],
-    examples: ['reelsfarm automations create --json-definition \'{"name":"Daily TikTok"}\' --agent'],
+    examples: ['reelsfarm automations create --json-definition \'{"name":"Daily TikTok","status":"PAUSED","targetConnectionId":"conn_123","schedule":{"slots":[{"days":["mon"],"timeLocal":"09:00"}]},"content":{"topic":"mindset","slidesCount":5}}\' --agent'],
   }),
   fromTool('automations.update', 'reelsfarm automations update --id <id> --json-definition <json>', 'Prepare or run automation updates.', 'prepare_update_automation', {
     requiredFlags: ['--id', '--json-definition'],
     optionalFlags: ['--yes', '--dry-run'],
-    examples: ['reelsfarm automations update --id auto_123 --json-definition \'{"status":"paused"}\' --agent'],
+    examples: ['reelsfarm automations update --id auto_123 --json-definition \'{"status":"PAUSED"}\' --agent'],
   }),
   fromTool('automations.delete', 'reelsfarm automations delete --id <id>', 'Prepare or run automation deletion.', 'prepare_delete_automation', {
     requiredFlags: ['--id'],
@@ -190,7 +190,7 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('webhooks.create', 'reelsfarm webhooks create --url <url> [--events <events>]', 'Create a webhook.', 'create_webhook', {
     requiredFlags: ['--url'],
     optionalFlags: ['--events'],
-    examples: ['reelsfarm webhooks create --url https://example.com/webhook --events post.published --agent'],
+    examples: ['reelsfarm webhooks create --url https://example.com/webhook --events scheduled_post.published --agent'],
   }),
   fromTool('webhooks.delete', 'reelsfarm webhooks delete --id <id>', 'Delete a webhook directly.', 'delete_webhook', {
     requiredFlags: ['--id'],
