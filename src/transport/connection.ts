@@ -34,7 +34,7 @@ export class ReelsFarmConnection {
       const raw = result as RawToolResult<T>;
       if (raw.isError) {
         const message = raw.content.find((item) => typeof item.text === 'string')?.text || 'ReelsFarm MCP tool failed';
-        throw new ReelsFarmToolError(message, name);
+        throw normalizeError(new Error(message), name);
       }
       return raw;
     } catch (error) {

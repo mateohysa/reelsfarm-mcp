@@ -20,9 +20,19 @@ export class ReelsFarmConfirmationError extends ReelsFarmError {}
 export class ReelsFarmTimeoutError extends ReelsFarmError {}
 
 export function normalizeError(error: unknown, toolName?: string): ReelsFarmError {
-  if (error instanceof ReelsFarmError) return error;
   const message = error instanceof Error ? error.message : String(error);
   const lower = message.toLowerCase();
+
+  if (
+    error instanceof ReelsFarmAuthError ||
+    error instanceof ReelsFarmValidationError ||
+    error instanceof ReelsFarmRateLimitError ||
+    error instanceof ReelsFarmConfirmationError ||
+    error instanceof ReelsFarmTimeoutError
+  ) {
+    return error;
+  }
+
   if (lower.includes('unauthorized') || lower.includes('authentication') || lower.includes('missing token')) {
     return new ReelsFarmAuthError(message, { cause: error });
   }
@@ -32,5 +42,6 @@ export function normalizeError(error: unknown, toolName?: string): ReelsFarmErro
   if (lower.includes('validation') || lower.includes('invalid_request')) {
     return new ReelsFarmValidationError(message, { cause: error });
   }
+  if (error instanceof ReelsFarmError) return error;
   return new ReelsFarmToolError(message, toolName, { cause: error });
 }
