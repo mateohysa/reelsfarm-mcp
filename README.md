@@ -15,7 +15,16 @@ Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
       model: 'nano-banana-pro',
     });
 
-    const result = await avatar.wait();
+    if ('confirmationId' in avatar) {
+      console.log('Review mode requires confirmation:', avatar);
+    } else if ('wait' in avatar) {
+      const result = await avatar.wait();
+    }
+
+Review mode returns a `PreparedAction` by default. Trusted applications can set
+`autoConfirm: true` to confirm Review actions automatically. Creator and
+Autopilot connections execute the capabilities enabled by their server-owned
+connection policy without an extra SDK approval step.
 
 ## CLI
 
@@ -47,14 +56,34 @@ Errors are also JSON on stdout and use a non-zero exit code.
 Prepared actions such as generation, scheduling, publishing, updating, and
 deleting return a confirmation payload by default in agent mode. Review the
 summary, then run `reelsfarm confirm <confirmationId> --agent`. Pass `--yes` only
-when the user has already approved immediate execution. `--dry-run` always wins
-over `--yes`.
+when the application should automatically confirm Review-mode actions.
+`--dry-run` is sent to the server and cannot mutate in Review, Creator, or
+Autopilot, even when combined with `--yes`.
 
-Direct write commands such as `assets import`, `slideshows create`, and
-`webhooks create`, plus direct destructive commands such as `posts cancel`,
-`webhooks delete`, and `logout`, require `--yes` in agent mode. Start every
-publishing workflow by running discovery commands such as `reelsfarm agent
-status`, `reelsfarm agent commands`, and `reelsfarm social connected --agent`.
+The server connection policy is authoritative for direct writes. Creator may
+create and edit content but cannot publish or activate automations. Autopilot
+may publish and manage automations subject to account limits. Credential,
+connection-mode, webhook-security, and permanent-delete actions are
+dashboard-only and are not exposed by this package.
+
+## Idempotency and operation recovery
+
+SDK 0.2.0 generates one UUID for every logical mutation and reuses it if the
+transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
+or `--idempotency-key <key>` in the CLI, when retries must also survive process
+restarts. Never reuse a key with different arguments.
+
+The SDK never automatically re-prepares an action after confirmation. It safely
+replays the same request once after an ambiguous transport failure and polls the
+original durable operation when the server returns one:
+
+    reelsfarm operations get --id op_123 --agent
+    reelsfarm operations wait --id op_123 --timeout 30000 --agent
+
+Structured errors distinguish authentication, insufficient scope, policy
+denial, rate limiting, idempotency conflict, operation-in-progress, and plan
+limits. OAuth profiles retain rotating refresh tokens in the existing protected
+profile token store until revoked or a security event requires authorization.
 
 ## Endpoint
 

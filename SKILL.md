@@ -54,7 +54,7 @@ Error:
 {
   "ok": false,
   "error": {
-    "code": "AUTH_MISSING",
+    "code": "AUTHENTICATION_REQUIRED",
     "type": "ReelsFarmAuthError",
     "message": "Missing token",
     "retryable": false,
@@ -63,19 +63,27 @@ Error:
 }
 ```
 
-## Safety Rules
+## Connection Modes and Safety Rules
 
 - Start with discovery before taking action:
   `reelsfarm agent status`, `reelsfarm agent commands`, and
   `reelsfarm social connected --agent`.
-- In agent mode, prepared write actions return a confirmation instead of
-  executing immediately.
-- Confirm only after the user approves:
+- Review returns prepared mutations for confirmation. Confirm only after the
+  user approves:
   `reelsfarm confirm <confirmationId> --agent`.
-- Use `--yes` only when the user has already approved immediate execution.
-- `--dry-run` always wins over `--yes`.
-- Direct destructive commands require `--yes` in agent mode:
-  `posts cancel`, `webhooks delete`, and `logout`.
+- Creator executes allowed content creation and reversible changes immediately,
+  but the server denies publishing and automation activation.
+- Autopilot executes publishing and automation actions immediately, subject to
+  credits, plan limits, provider limits, and connected-account health.
+- Use `--yes` only to auto-confirm a Review-mode prepared action. It does not
+  grant capabilities or override the server connection mode.
+- `--dry-run` always prevents server execution, including in Creator or
+  Autopilot and when combined with `--yes`.
+- Every mutation gets a stable idempotency key. Reuse
+  `--idempotency-key <key>` only when retrying the same logical action with the
+  same arguments.
+- Credential, mode, webhook-security, and permanent-delete actions are
+  dashboard-only and are intentionally absent from the CLI.
 
 ## Canonical Workflows
 
@@ -127,9 +135,17 @@ reelsfarm posts status --id post_123 --agent
 reelsfarm posts optimal-times --platform tiktok --agent
 ```
 
+Recover an ambiguous mutation without preparing a replacement:
+
+```bash
+reelsfarm operations get --id op_123 --agent
+reelsfarm operations wait --id op_123 --timeout 30000 --agent
+```
+
 ## Important Boundaries
 
 This CLI operates on ReelsFarm content and connected ReelsFarm publishing
 accounts. It does not add new social platforms, perform local file upload, or
-replace user approval. When uncertain, return a dry run or confirmation payload
-and ask the user before executing.
+change connection policy. The dashboard-selected mode is authoritative. When
+uncertain, use `--dry-run`; never automatically re-prepare after a confirmation
+error, and inspect the original operation ID instead.
