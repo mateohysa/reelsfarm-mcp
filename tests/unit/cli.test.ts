@@ -31,9 +31,9 @@ function createClient(overrides: Record<string, unknown> = {}): ReelsFarmClient 
       import: async () => ({ imported: true }),
       importBulk: async () => ({ imported: 1 }),
     },
-    webhooks: {
-      create: async () => ({ id: 'wh_1' }),
-      delete: async () => ({ deleted: true }),
+    operations: {
+      get: async (operationId: string) => ({ operationId, status: 'SUCCEEDED' }),
+      wait: async (operationId: string) => ({ operationId, status: 'SUCCEEDED' }),
     },
     raw: {
       callTool: async () => ({ content: [], structuredContent: { confirmed: true } }),
@@ -113,7 +113,7 @@ describe('cli', () => {
     expect(result.json).toMatchObject({
       ok: false,
       error: {
-        code: 'AUTH_MISSING',
+        code: 'AUTHENTICATION_REQUIRED',
         type: 'ReelsFarmAuthError',
         retryable: false,
       },
@@ -171,9 +171,11 @@ describe('cli', () => {
       seenOptions = options;
       return createClient({
         posts: {
-          schedule: async () => options.dryRun
-            ? { confirmationId: 'conf_1', expiresAt: '2026-07-01T15:00:00.000Z', summary: 'Schedule post', creditEstimate: null }
-            : { scheduled: true },
+          schedule: async () => options.autoConfirm
+            ? { scheduled: true }
+            : options.dryRun
+              ? { dryRun: true, executed: false }
+              : { confirmationId: 'conf_1', expiresAt: '2026-07-01T15:00:00.000Z', summary: 'Schedule post', creditEstimate: null },
         },
       });
     };
@@ -192,7 +194,8 @@ describe('cli', () => {
       'tiktok:conn_123',
     ], factory);
 
-    expect(seenOptions?.dryRun).toBe(true);
+    expect(seenOptions?.dryRun).toBe(false);
+    expect(seenOptions?.autoConfirm).toBe(false);
     expect(prepared.json).toMatchObject({
       ok: true,
       command: 'posts.schedule',
@@ -217,6 +220,7 @@ describe('cli', () => {
     ], factory);
 
     expect(seenOptions?.dryRun).toBe(false);
+    expect(seenOptions?.autoConfirm).toBe(true);
     expect(executed.json).toMatchObject({
       ok: true,
       command: 'posts.schedule',
@@ -240,84 +244,85 @@ describe('cli', () => {
     ], factory);
 
     expect(seenOptions?.dryRun).toBe(true);
+    expect(seenOptions?.autoConfirm).toBe(true);
   });
 
-  it('guards direct destructive commands in agent mode', async () => {
+  it('lets the server connection policy decide direct mutations and preserves dry-run', async () => {
     let cancelCalls = 0;
-    const factory = () => createClient({
+    const factory = (options: ReelsFarmClientOptions) => createClient({
       posts: {
         cancel: async () => {
+          if (options.dryRun) return { dryRun: true, executed: false };
           cancelCalls += 1;
           return { cancelled: true };
         },
       },
     });
 
-    const blocked = await runCli(['--agent', 'posts', 'cancel', '--id', 'post_123'], factory);
-
-    expect(cancelCalls).toBe(0);
-    expect(blocked.exitCode).toBe(1);
-    expect(blocked.json).toMatchObject({
-      ok: false,
-      error: {
-        code: 'CONFIRMATION_REQUIRED',
-      },
+    const executed = await runCli(['--agent', 'posts', 'cancel', '--id', 'post_123'], factory);
+    expect(cancelCalls).toBe(1);
+    expect(executed.json).toMatchObject({
+      ok: true,
+      data: { cancelled: true },
     });
 
     const dryRun = await runCli(['--agent', '--yes', '--dry-run', 'posts', 'cancel', '--id', 'post_123'], factory);
 
-    expect(cancelCalls).toBe(0);
+    expect(cancelCalls).toBe(1);
     expect(dryRun.json).toMatchObject({
       ok: true,
       command: 'posts.cancel',
       data: {
         dryRun: true,
-        skipped: true,
+        executed: false,
       },
     });
   });
 
-  it('guards direct write commands in agent mode', async () => {
+  it('passes automatic idempotency-key factories to SDK clients', async () => {
     let createCalls = 0;
-    const factory = () => createClient({
-      webhooks: {
-        create: async () => {
-          createCalls += 1;
-          return { id: 'wh_1' };
+    let seenOptions: ReelsFarmClientOptions | undefined;
+    const factory = (options: ReelsFarmClientOptions) => {
+      seenOptions = options;
+      return createClient({
+        slideshows: {
+          create: async () => {
+            createCalls += 1;
+            return { id: 'sl_1' };
+          },
         },
-      },
-    });
+      });
+    };
 
-    const blocked = await runCli(['--agent', 'webhooks', 'create', '--url', 'https://example.com/webhook'], factory);
-
-    expect(createCalls).toBe(0);
-    expect(blocked.exitCode).toBe(1);
-    expect(blocked.json).toMatchObject({
-      ok: false,
-      error: {
-        code: 'CONFIRMATION_REQUIRED',
-      },
-    });
-
-    const dryRun = await runCli(['--agent', '--dry-run', 'webhooks', 'create', '--url', 'https://example.com/webhook'], factory);
-
-    expect(createCalls).toBe(0);
-    expect(dryRun.json).toMatchObject({
-      ok: true,
-      command: 'webhooks.create',
-      data: {
-        dryRun: true,
-        skipped: true,
-      },
-    });
-
-    const executed = await runCli(['--agent', '--yes', 'webhooks', 'create', '--url', 'https://example.com/webhook'], factory);
+    const result = await runCli([
+      '--agent',
+      '--idempotency-key',
+      'logical-action-1',
+      'slideshows',
+      'create',
+      '--slides-json',
+      '[]',
+    ], factory);
 
     expect(createCalls).toBe(1);
-    expect(executed.json).toMatchObject({
+    expect(seenOptions?.idempotencyKeyFactory?.()).toBe('logical-action-1');
+    expect(result.json).toMatchObject({
       ok: true,
-      command: 'webhooks.create',
-      data: { id: 'wh_1' },
+      data: { id: 'sl_1' },
+    });
+  });
+
+  it('gets durable operation status', async () => {
+    const result = await runCli(['--agent', 'operations', 'get', '--id', 'op_123'], () => createClient({
+      operations: {
+        get: async (operationId: string) => ({ operationId, status: 'RUNNING' }),
+        wait: async () => ({ operationId: 'op_123', status: 'SUCCEEDED' }),
+      },
+    }));
+    expect(result.json).toMatchObject({
+      ok: true,
+      command: 'operations.get',
+      data: { operationId: 'op_123', status: 'RUNNING' },
     });
   });
 
@@ -353,7 +358,8 @@ describe('cli', () => {
     expect(byName.get('agent.status')?.readOnly).toBe(true);
     expect(byName.get('agent.commands')?.readOnly).toBe(true);
     expect(byName.get('posts.schedule')?.prepareBacked).toBe(true);
-    expect(byName.get('webhooks.delete')?.destructive).toBe(true);
-    expect(byName.get('webhooks.create')?.safety).toBe('write');
+    expect(byName.get('operations.get')?.readOnly).toBe(true);
+    expect(byName.has('webhooks.create')).toBe(false);
+    expect(byName.has('posts.delete')).toBe(false);
   });
 });

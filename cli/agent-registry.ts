@@ -136,16 +136,11 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     optionalFlags: ['--when', '--caption', '--yes', '--dry-run'],
     examples: ['reelsfarm posts update --id post_123 --when 2026-07-01T16:00:00Z --agent'],
   }),
-  fromTool('posts.delete', 'reelsfarm posts delete --id <id>', 'Prepare or run scheduled post deletion.', 'prepare_delete_scheduled_post', {
-    requiredFlags: ['--id'],
-    optionalFlags: ['--yes', '--dry-run'],
-    examples: ['reelsfarm posts delete --id post_123 --agent'],
-  }),
   fromTool('posts.cancel', 'reelsfarm posts cancel --id <id>', 'Cancel a scheduled post directly.', 'cancel_scheduled_post', {
     requiredFlags: ['--id'],
     optionalFlags: ['--yes', '--dry-run'],
     destructive: true,
-    examples: ['reelsfarm posts cancel --id post_123 --agent --yes'],
+    examples: ['reelsfarm posts cancel --id post_123 --agent'],
   }),
   fromTool('assets.list', 'reelsfarm assets list --category <category> [--limit <n>]', 'List user assets by category.', 'list_assets', {
     requiredFlags: ['--category'],
@@ -179,24 +174,14 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     optionalFlags: ['--yes', '--dry-run'],
     examples: ['reelsfarm automations update --id auto_123 --json-definition \'{"status":"PAUSED"}\' --agent'],
   }),
-  fromTool('automations.delete', 'reelsfarm automations delete --id <id>', 'Prepare or run automation deletion.', 'prepare_delete_automation', {
+  fromTool('operations.get', 'reelsfarm operations get --id <id>', 'Get durable status for an MCP mutation.', 'get_operation', {
     requiredFlags: ['--id'],
-    optionalFlags: ['--yes', '--dry-run'],
-    examples: ['reelsfarm automations delete --id auto_123 --agent'],
+    examples: ['reelsfarm operations get --id op_123 --agent'],
   }),
-  fromTool('webhooks.list', 'reelsfarm webhooks list', 'List webhooks.', 'list_webhooks', {
-    examples: ['reelsfarm webhooks list --agent'],
-  }),
-  fromTool('webhooks.create', 'reelsfarm webhooks create --url <url> [--events <events>]', 'Create a webhook.', 'create_webhook', {
-    requiredFlags: ['--url'],
-    optionalFlags: ['--events'],
-    examples: ['reelsfarm webhooks create --url https://example.com/webhook --events scheduled_post.published --agent'],
-  }),
-  fromTool('webhooks.delete', 'reelsfarm webhooks delete --id <id>', 'Delete a webhook directly.', 'delete_webhook', {
+  fromTool('operations.wait', 'reelsfarm operations wait --id <id> [--timeout <ms>]', 'Wait for a durable MCP mutation to finish.', 'get_operation', {
     requiredFlags: ['--id'],
-    optionalFlags: ['--yes', '--dry-run'],
-    destructive: true,
-    examples: ['reelsfarm webhooks delete --id wh_123 --agent --yes'],
+    optionalFlags: ['--timeout'],
+    examples: ['reelsfarm operations wait --id op_123 --timeout 30000 --agent'],
   }),
   fromTool('events.recent', 'reelsfarm events recent [--limit <n>] [--type <type>]', 'List recent account events.', 'get_recent_events', {
     optionalFlags: ['--limit', '--type'],

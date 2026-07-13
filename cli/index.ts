@@ -4,8 +4,14 @@ import { spawn } from 'node:child_process';
 import { Command } from 'commander';
 import {
   ReelsFarmAuthError,
+  ReelsFarmAuthorizationError,
   ReelsFarmClient,
   ReelsFarmConfirmationError,
+  ReelsFarmError,
+  ReelsFarmIdempotencyError,
+  ReelsFarmOperationInProgressError,
+  ReelsFarmPlanLimitError,
+  ReelsFarmPolicyError,
   ReelsFarmRateLimitError,
   ReelsFarmTimeoutError,
   ReelsFarmToolError,
@@ -32,6 +38,7 @@ type GlobalOptions = {
   dryRun?: boolean;
   agent?: boolean;
   yes?: boolean;
+  idempotencyKey?: string;
 };
 
 export interface BuildProgramOptions {
@@ -64,12 +71,13 @@ function isMachineReadable(opts: GlobalOptions): boolean {
 
 function makeClient(command: Command, buildOptions: BuildProgramOptions): ReelsFarmClient {
   const opts = command.optsWithGlobals<GlobalOptions>();
-  const agentMode = isAgentMode(opts);
   const clientOptions: ReelsFarmClientOptions = {
     apiKey: opts.apiKey,
     serverUrl: opts.serverUrl,
     profile: opts.profile,
-    dryRun: Boolean(opts.dryRun || (agentMode && !opts.yes)),
+    dryRun: Boolean(opts.dryRun),
+    autoConfirm: Boolean(opts.yes),
+    idempotencyKeyFactory: opts.idempotencyKey ? () => opts.idempotencyKey! : undefined,
     timeoutMs: opts.timeout ? Number(opts.timeout) : undefined,
   };
   return buildOptions.clientFactory ? buildOptions.clientFactory(clientOptions) : new ReelsFarmClient(clientOptions);
@@ -116,28 +124,49 @@ function errorEnvelope(error: unknown): JsonObject {
   const type = error instanceof Error ? error.name : 'Error';
   const lower = message.toLowerCase();
   let code = 'UNKNOWN_ERROR';
-  let retryable = false;
+  const retryable = error instanceof ReelsFarmError ? error.retryable : false;
   let nextStep: string | undefined;
 
   if (error instanceof AgentSafetyError) {
     code = 'CONFIRMATION_REQUIRED';
     nextStep = error.nextStep;
   } else if (error instanceof ReelsFarmAuthError || lower.includes('missing token') || lower.includes('unauthorized')) {
-    code = lower.includes('missing') ? 'AUTH_MISSING' : 'AUTH_REQUIRED';
+    code = error instanceof ReelsFarmError && error.code ? error.code : 'AUTHENTICATION_REQUIRED';
     nextStep = 'Run reelsfarm login --api-key <key>';
+  } else if (error instanceof ReelsFarmPolicyError) {
+    code = error.code || 'AUTONOMY_MODE_DENIED';
+    nextStep = error.dashboardUrl
+      ? `Complete this action in the ReelsFarm dashboard: ${error.dashboardUrl}`
+      : 'Review the connection mode and allowed capabilities in ReelsFarm settings.';
+  } else if (error instanceof ReelsFarmAuthorizationError) {
+    code = error.code || 'INSUFFICIENT_SCOPE';
+    nextStep = 'Use a connection whose mode and scopes allow this action.';
   } else if (error instanceof ReelsFarmRateLimitError) {
-    code = 'RATE_LIMITED';
-    retryable = true;
+    code = error.code || 'RATE_LIMITED';
     nextStep = 'Retry after the rate limit resets.';
+  } else if (error instanceof ReelsFarmIdempotencyError) {
+    code = error.code || 'IDEMPOTENCY_KEY_REUSED';
+    nextStep = code === 'IDEMPOTENCY_KEY_REUSED'
+      ? 'Use the same key only for the same arguments, or choose a new key for a different logical action.'
+      : 'Provide one stable --idempotency-key and reuse it for retries of this logical action.';
+  } else if (error instanceof ReelsFarmOperationInProgressError) {
+    code = error.code || 'OPERATION_IN_PROGRESS';
+    nextStep = error.operationId
+      ? `Run reelsfarm operations get --id ${error.operationId} --agent.`
+      : 'Poll the original operation instead of preparing another action.';
+  } else if (error instanceof ReelsFarmPlanLimitError) {
+    code = error.code || 'PLAN_LIMIT_REACHED';
+    nextStep = 'Review credits and plan limits in ReelsFarm.';
   } else if (error instanceof ReelsFarmValidationError || error instanceof SyntaxError || lower.includes('invalid')) {
     code = 'VALIDATION_ERROR';
     nextStep = 'Run reelsfarm agent commands to inspect required flags and examples.';
   } else if (error instanceof ReelsFarmConfirmationError) {
-    code = 'CONFIRMATION_FAILED';
-    nextStep = 'Prepare the action again, then run reelsfarm confirm <confirmationId> --agent.';
+    code = error.code || 'CONFIRMATION_FAILED';
+    nextStep = error.operationId
+      ? `Inspect the original operation with reelsfarm operations get --id ${error.operationId} --agent.`
+      : 'Retry the same confirmation ID. Do not prepare a replacement action automatically.';
   } else if (error instanceof ReelsFarmTimeoutError) {
     code = 'TIMEOUT';
-    retryable = true;
     nextStep = 'Retry with --timeout <ms> or check the job status command.';
   } else if (error instanceof ReelsFarmToolError) {
     code = 'TOOL_ERROR';
@@ -150,6 +179,8 @@ function errorEnvelope(error: unknown): JsonObject {
     retryable,
   };
   if (nextStep) body.nextStep = nextStep;
+  if (error instanceof ReelsFarmError && error.operationId) body.operationId = error.operationId;
+  if (error instanceof ReelsFarmError && error.dashboardUrl) body.dashboardUrl = error.dashboardUrl;
   return { ok: false, error: body };
 }
 
@@ -226,10 +257,6 @@ function guardDirectDestructive(opts: GlobalOptions, commandName: string): JsonO
   return guardDirectAgentAction(opts, commandName, 'destructive');
 }
 
-function guardDirectWrite(opts: GlobalOptions, commandName: string): JsonObject | undefined {
-  return guardDirectAgentAction(opts, commandName, 'write');
-}
-
 function parsePlatforms(value: string): PlatformTarget[] {
   return value.split(',').filter(Boolean).map((item) => {
     const [platformRaw, connectionId] = item.split(':');
@@ -291,7 +318,8 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--wait', 'wait for async job completion')
     .option('--timeout <ms>', 'timeout in milliseconds')
     .option('--dry-run', 'prepare actions without confirming them')
-    .option('--yes', 'execute agent-mode write/destructive actions without returning a confirmation first');
+    .option('--yes', 'automatically confirm Review-mode prepared actions')
+    .option('--idempotency-key <key>', 'stable key to reuse when retrying one logical mutation');
 
   program.command('login')
     .option('--api-key <key>', 'store an MCP API key')
@@ -369,9 +397,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const slideshows = program.command('slideshows');
   slideshows.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.slideshows.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   slideshows.command('get').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.slideshows.get(opts.id), buildOptions));
-  slideshows.command('create').requiredOption('--slides-json <json>').option('--title <title>').action((opts, command) => run(command, async (client, globals) => {
-    const guarded = guardDirectWrite(globals, 'slideshows.create');
-    if (guarded) return guarded;
+  slideshows.command('create').requiredOption('--slides-json <json>').option('--title <title>').action((opts, command) => run(command, async (client) => {
     return client.slideshows.create({ title: opts.title, slides: JSON.parse(opts.slidesJson) });
   }, buildOptions));
   slideshows.command('generate-text').requiredOption('--prompt <prompt>').option('--type <type>').option('--slide-count <n>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.generateText({ prompt: opts.prompt, slideshowType: opts.type, slideCount: opts.slideCount ? Number(opts.slideCount) : undefined }), globals), buildOptions));
@@ -388,24 +414,17 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   posts.command('schedule').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--when <date>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.schedule({ contentType: parseContentType(opts.contentType), contentId: opts.contentId, scheduledFor: opts.when, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
   posts.command('publish-now').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.publishNow({ contentType: parseContentType(opts.contentType), contentId: opts.contentId, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
   posts.command('update').requiredOption('--id <id>').option('--when <date>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.update(opts.id, { scheduledFor: opts.when, caption: opts.caption }), buildOptions));
-  posts.command('cancel').requiredOption('--id <id>').action((opts, command) => run(command, (client, globals) => {
-    const guarded = guardDirectDestructive(globals, 'posts.cancel');
-    if (guarded) return Promise.resolve(guarded);
+  posts.command('cancel').requiredOption('--id <id>').action((opts, command) => run(command, (client) => {
     return client.posts.cancel(opts.id);
   }, buildOptions));
-  posts.command('delete').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.posts.delete(opts.id), buildOptions));
 
   const assets = program.command('assets');
   assets.command('list').requiredOption('--category <category>').option('--limit <n>').action((opts, command) => run(command, (client) => client.assets.list(opts.category, { limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   assets.command('search').argument('<query>').option('--category <category>').action((query, opts, command) => run(command, (client) => client.assets.search(query, { category: opts.category }), buildOptions));
-  assets.command('import').requiredOption('--category <category>').requiredOption('--url <url>').option('--name <name>').action((opts, command) => run(command, async (client, globals) => {
-    const guarded = guardDirectWrite(globals, 'assets.import');
-    if (guarded) return guarded;
+  assets.command('import').requiredOption('--category <category>').requiredOption('--url <url>').option('--name <name>').action((opts, command) => run(command, async (client) => {
     return client.assets.import({ category: opts.category, url: opts.url, name: opts.name });
   }, buildOptions));
-  assets.command('import-bulk').requiredOption('--category <category>').requiredOption('--items-json <json>').action((opts, command) => run(command, async (client, globals) => {
-    const guarded = guardDirectWrite(globals, 'assets.import-bulk');
-    if (guarded) return guarded;
+  assets.command('import-bulk').requiredOption('--category <category>').requiredOption('--items-json <json>').action((opts, command) => run(command, async (client) => {
     return client.assets.importBulk({ category: opts.category, items: JSON.parse(opts.itemsJson) });
   }, buildOptions));
 
@@ -413,20 +432,6 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   automations.command('list').action((_, command) => run(command, (client) => client.automations.list(), buildOptions));
   automations.command('create').requiredOption('--json-definition <json>').action((opts, command) => run(command, (client) => client.automations.create(JSON.parse(opts.jsonDefinition) as JsonObject), buildOptions));
   automations.command('update').requiredOption('--id <id>').requiredOption('--json-definition <json>').action((opts, command) => run(command, (client) => client.automations.update(opts.id, JSON.parse(opts.jsonDefinition) as JsonObject), buildOptions));
-  automations.command('delete').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.automations.delete(opts.id), buildOptions));
-
-  const webhooks = program.command('webhooks');
-  webhooks.command('list').action((_, command) => run(command, (client) => client.webhooks.list(), buildOptions));
-  webhooks.command('create').requiredOption('--url <url>').option('--events <events>').action((opts, command) => run(command, async (client, globals) => {
-    const guarded = guardDirectWrite(globals, 'webhooks.create');
-    if (guarded) return guarded;
-    return client.webhooks.create({ url: opts.url, events: opts.events ? String(opts.events).split(',') : undefined });
-  }, buildOptions));
-  webhooks.command('delete').requiredOption('--id <id>').action((opts, command) => run(command, (client, globals) => {
-    const guarded = guardDirectDestructive(globals, 'webhooks.delete');
-    if (guarded) return Promise.resolve(guarded);
-    return client.webhooks.delete(opts.id);
-  }, buildOptions));
 
   const events = program.command('events');
   events.command('recent').option('--limit <n>').option('--type <type>').action((opts, command) => run(command, (client) => client.events.recent({ limit: opts.limit ? Number(opts.limit) : undefined, type: opts.type }), buildOptions));
@@ -438,6 +443,12 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     const result = await client.raw.callTool('confirm_action', { confirmationId });
     return extractStructuredContent(result);
   }, buildOptions));
+
+  const operations = program.command('operations');
+  operations.command('get').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.operations.get(opts.id), buildOptions));
+  operations.command('wait').requiredOption('--id <id>').action((opts, command) => run(command, (client, globals) => client.operations.wait(opts.id, {
+    timeoutMs: globals.timeout ? Number(globals.timeout) : undefined,
+  }), buildOptions));
 
   const agent = program.command('agent');
   agent.command('commands').action((_, command) => runLocal(command, () => ({
@@ -477,7 +488,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   }, buildOptions, { forceJson: true }));
 
   program.command('completion').argument('[shell]').action((shell = 'bash') => {
-    const commands = 'login logout whoami account avatars hooks slideshows social posts assets automations webhooks events validate confirm agent completion';
+    const commands = 'login logout whoami account avatars hooks slideshows social posts assets automations events validate operations confirm agent completion';
     const script = shell === 'zsh'
       ? '#compdef reelsfarm\n_reelsfarm() { compadd ' + commands + ' }\n_reelsfarm "$@"'
       : 'complete -W "' + commands + '" reelsfarm';
