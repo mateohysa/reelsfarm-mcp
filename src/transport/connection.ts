@@ -1,17 +1,51 @@
+import { randomUUID } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport, type StreamableHTTPClientTransportOptions } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import type { ToolName } from '../generated/index.js';
-import { toolNames } from '../generated/index.js';
-import { DEFAULT_MCP_SERVER_URL, DEFAULT_PROFILE, DEFAULT_TIMEOUT_MS, SDK_NAME, SDK_VERSION } from '../constants.js';
-import { ReelsFarmAuthError, ReelsFarmToolError, normalizeError } from '../errors.js';
-import type { JsonObject, RawToolResult, ReelsFarmClientOptions } from '../types.js';
+import { toolManifest, toolNames } from '../generated/index.js';
+import { DEFAULT_MCP_SERVER_URL, DEFAULT_OPERATION_RECOVERY_TIMEOUT_MS, DEFAULT_PROFILE, DEFAULT_TIMEOUT_MS, SDK_NAME, SDK_VERSION } from '../constants.js';
+import { ReelsFarmAuthError, ReelsFarmError, ReelsFarmToolError, normalizeError, normalizeToolError } from '../errors.js';
+import type { JsonObject, McpOperationSnapshot, RawToolResult, ReelsFarmClientOptions } from '../types.js';
 import { loadProfile } from '../auth/config-store.js';
 import { ReelsFarmOAuthProvider } from '../auth/oauth-provider.js';
+import { sleep } from '../utils/sleep.js';
 
 export interface ResolvedClientOptions extends ReelsFarmClientOptions {
   serverUrl: string;
   profile: string;
+}
+
+const toolsByName = new Map(toolManifest.map((tool) => [tool.name as string, tool]));
+
+function isMutationTool(name: string): boolean {
+  const tool = toolsByName.get(name);
+  return Boolean(tool && !tool.readOnly);
+}
+
+function isAmbiguousTransportError(error: unknown): boolean {
+  if (error instanceof ReelsFarmError || error instanceof UnauthorizedError) return false;
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  const record = error && typeof error === 'object' ? error as { code?: unknown; name?: unknown } : undefined;
+  const code = typeof record?.code === 'string' ? record.code.toUpperCase() : '';
+  if (['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'UND_ERR_SOCKET', 'UND_ERR_HEADERS_TIMEOUT'].includes(code)) return true;
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return error instanceof TypeError
+    || message.includes('timed out')
+    || message.includes('timeout')
+    || message.includes('network')
+    || message.includes('socket')
+    || message.includes('connection closed')
+    || message.includes('fetch failed');
+}
+
+function readOperation(result: RawToolResult): McpOperationSnapshot | undefined {
+  const operation = result.structuredContent?.operation;
+  if (!operation || typeof operation !== 'object') return undefined;
+  const record = operation as Partial<McpOperationSnapshot>;
+  return typeof record.operationId === 'string' && typeof record.status === 'string'
+    ? operation as McpOperationSnapshot
+    : undefined;
 }
 
 export class ReelsFarmConnection {
@@ -28,16 +62,23 @@ export class ReelsFarmConnection {
   }
 
   async callTool<T extends JsonObject = JsonObject>(name: ToolName | string, args: JsonObject = {}): Promise<RawToolResult<T>> {
+    const requestArgs = this.prepareArguments(name, args);
     try {
-      const client = await this.getClient();
-      const result = await client.callTool({ name, arguments: args });
-      const raw = result as RawToolResult<T>;
-      if (raw.isError) {
-        const message = raw.content.find((item) => typeof item.text === 'string')?.text || 'ReelsFarm MCP tool failed';
-        throw normalizeError(new Error(message), name);
-      }
-      return raw;
+      const result = await this.callToolOnce<T>(name, requestArgs);
+      return await this.maybeAutoConfirm(name, result);
     } catch (error) {
+      const retrySafe = isMutationTool(name)
+        && (name === 'confirm_action' || typeof requestArgs.idempotencyKey === 'string');
+      if (retrySafe && isAmbiguousTransportError(error)) {
+        try {
+          await this.reset();
+          const replayed = await this.callToolOnce<T>(name, requestArgs);
+          const recovered = await this.resolveRecoveredOperation(replayed);
+          return await this.maybeAutoConfirm(name, recovered);
+        } catch (recoveryError) {
+          throw normalizeError(recoveryError, name);
+        }
+      }
       throw normalizeError(error, name);
     }
   }
@@ -47,10 +88,10 @@ export class ReelsFarmConnection {
     const tools = await this.listTools();
     const serverNames = new Set(tools.map((tool) => String(tool.name)));
     const knownNames = new Set<string>(toolNames);
-    const missing = toolNames.filter((name) => !serverNames.has(name));
     const extra = [...serverNames].filter((name) => !knownNames.has(name));
-    if (missing.length === 0 && extra.length === 0) return;
-    const message = 'ReelsFarm MCP tool surface drift detected. Missing: ' + missing.join(', ') + '. Extra: ' + extra.join(', ') + '.';
+    const missingRequired = ['get_account', 'get_operation'].filter((name) => !serverNames.has(name));
+    if (missingRequired.length === 0 && extra.length === 0) return;
+    const message = 'ReelsFarm MCP tool surface drift detected. Missing required tools: ' + missingRequired.join(', ') + '. Extra: ' + extra.join(', ') + '. Policy-filtered tools may be absent by design.';
     if (mode === 'throw') throw new ReelsFarmToolError(message);
     console.warn(message);
   }
@@ -84,6 +125,78 @@ export class ReelsFarmConnection {
     }
     this.client = client;
     return client;
+  }
+
+  private prepareArguments(name: string, args: JsonObject): JsonObject {
+    if (!isMutationTool(name)) return args;
+    if (name === 'confirm_action') {
+      return this.options.dryRun ? { ...args, dryRun: true } : args;
+    }
+    const suppliedKey = typeof args.idempotencyKey === 'string' ? args.idempotencyKey.trim() : '';
+    const idempotencyKey = suppliedKey || this.options.idempotencyKeyFactory?.() || randomUUID();
+    return {
+      ...args,
+      idempotencyKey,
+      ...(this.options.dryRun ? { dryRun: true } : {}),
+    };
+  }
+
+  private async callToolOnce<T extends JsonObject>(name: ToolName | string, args: JsonObject): Promise<RawToolResult<T>> {
+    const client = await this.getClient();
+    const result = await client.callTool(
+      { name, arguments: args },
+      undefined,
+      { timeout: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS },
+    );
+    const raw = result as RawToolResult<T>;
+    if (raw.isError) {
+      const message = raw.content.find((item) => typeof item.text === 'string')?.text || 'ReelsFarm MCP tool failed';
+      throw normalizeToolError(message, String(name), raw._meta);
+    }
+    return raw;
+  }
+
+  private async maybeAutoConfirm<T extends JsonObject>(name: ToolName | string, result: RawToolResult<T>): Promise<RawToolResult<T>> {
+    if (!this.options.autoConfirm || this.options.dryRun || name === 'confirm_action') return result;
+    const confirmationId = result.structuredContent?.confirmationId;
+    if (typeof confirmationId !== 'string') return result;
+    return await this.callTool<T>('confirm_action', { confirmationId });
+  }
+
+  private async resolveRecoveredOperation<T extends JsonObject>(initial: RawToolResult<T>): Promise<RawToolResult<T>> {
+    let result: RawToolResult = initial;
+    let operation = readOperation(result);
+    if (!operation) return initial;
+
+    const startedAt = Date.now();
+    const timeoutMs = this.options.operationRecoveryTimeoutMs ?? DEFAULT_OPERATION_RECOVERY_TIMEOUT_MS;
+    let delay = 250;
+    while (operation.status === 'PENDING' || operation.status === 'RUNNING') {
+      if (Date.now() - startedAt >= timeoutMs) return result as RawToolResult<T>;
+      await sleep(delay);
+      delay = Math.min(delay * 2, 2_000);
+      result = await this.callToolOnce('get_operation', { operationId: operation.operationId });
+      operation = readOperation(result);
+      if (!operation) return result as RawToolResult<T>;
+    }
+
+    if (operation.status === 'SUCCEEDED' && operation.result && typeof operation.result === 'object') {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(operation.result) }],
+        structuredContent: operation.result as T,
+      };
+    }
+    if (operation.status === 'FAILED_RETRYABLE' || operation.status === 'FAILED_FINAL') {
+      throw normalizeToolError(
+        operation.error?.message || `Operation ${operation.operationId} failed with status ${operation.status}`,
+        operation.toolName,
+        {
+          'mcp/error_code': [operation.error?.code || 'ACTION_FAILED'],
+          'mcp/operation_id': [operation.operationId],
+        },
+      );
+    }
+    return result as RawToolResult<T>;
   }
 
   private async createTransport(): Promise<StreamableHTTPClientTransport> {

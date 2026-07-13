@@ -12,7 +12,4 @@ export class AutomationsDomain extends DomainBase {
   update(id: string, params: AutomationDefinition): Promise<MaybePrepared<JsonObject>> {
     return prepareAndConfirm<JsonObject>(this.context, 'prepare_update_automation', { id, ...params });
   }
-  delete(id: string): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_delete_automation', { id });
-  }
 }

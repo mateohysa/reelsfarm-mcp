@@ -37,7 +37,7 @@ export class ReelsFarmOAuthProvider implements OAuthClientProvider {
     return {
       client_name: this.options.clientName || 'ReelsFarm MCP Client',
       redirect_uris: [this.options.redirectUri],
-      grant_types: ['authorization_code'],
+      grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
       scope: 'mcp:full',

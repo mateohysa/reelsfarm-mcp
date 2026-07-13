@@ -1,8 +1,8 @@
-import type { JsonObject, MaybePrepared, PlatformTarget } from '../types.js';
+import type { JsonObject, MaybePrepared, MutationOptions, PlatformTarget } from '../types.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
-export interface PublishParams {
+export interface PublishParams extends MutationOptions {
   contentType: string;
   contentId: string;
   timezone?: string;
@@ -38,7 +38,7 @@ export class PostsDomain extends DomainBase {
     return prepareAndConfirm<JsonObject>(this.context, 'prepare_batch_publish', params as unknown as JsonObject);
   }
 
-  update(id: string, params: { scheduledFor?: string | Date; timezone?: string; caption?: string }): Promise<MaybePrepared<JsonObject>> {
+  update(id: string, params: { scheduledFor?: string | Date; timezone?: string; caption?: string } & MutationOptions): Promise<MaybePrepared<JsonObject>> {
     return prepareAndConfirm<JsonObject>(this.context, 'prepare_update_scheduled_post', {
       id,
       ...params,
@@ -46,9 +46,5 @@ export class PostsDomain extends DomainBase {
     } as unknown as JsonObject);
   }
 
-  delete(id: string): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_delete_scheduled_post', { id });
-  }
-
-  cancel(id: string) { return this.call('cancel_scheduled_post', { id }); }
+  cancel(id: string, options: MutationOptions = {}) { return this.call('cancel_scheduled_post', { id, ...options }); }
 }

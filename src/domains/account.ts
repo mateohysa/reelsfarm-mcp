@@ -11,8 +11,4 @@ export class AccountDomain extends DomainBase {
   getGenerationStats(options: { days?: number } = {}) { return this.call('get_generation_stats', options as JsonObject); }
   getActivity(options: { limit?: number } = {}) { return this.call('get_account_activity', options as JsonObject); }
   getGenerationPricing() { return this.call('get_generation_pricing'); }
-  listApiKeys() { return this.call('list_api_keys'); }
-  revokeApiKey(id: string) { return this.call('revoke_api_key', { id }); }
-  listOAuthClients() { return this.call('list_oauth_clients'); }
-  revokeOAuthClient(clientId: string) { return this.call('revoke_oauth_client', { clientId }); }
 }

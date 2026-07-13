@@ -1,9 +1,9 @@
-import type { AvatarModel, AvatarStyleMode, JsonObject, MaybePrepared } from '../types.js';
+import type { AvatarModel, AvatarStyleMode, JsonObject, MaybePrepared, MutationOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
-export interface AvatarGenerationParams {
+export interface AvatarGenerationParams extends MutationOptions {
   prompt: string;
   mode?: 'text' | 'reference';
   referenceUrl?: string;
@@ -24,8 +24,8 @@ export class AvatarsDomain extends DomainBase {
     return jobId ? new ReelsFarmJob(jobId, 'AVATAR', (id) => this.getJobStatus(id)) : result;
   }
 
-  async generateBatch(items: AvatarGenerationParams[]): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_batch_generate_avatars', { items } as unknown as JsonObject);
+  async generateBatch(items: AvatarGenerationParams[], options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {
+    return prepareAndConfirm<JsonObject>(this.context, 'prepare_batch_generate_avatars', { items, ...options } as unknown as JsonObject);
   }
 
   async getJobStatus(jobId: string) {

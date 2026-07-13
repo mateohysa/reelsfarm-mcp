@@ -1,4 +1,4 @@
-import type { AssetCategory, JsonObject, PageOptions } from '../types.js';
+import type { AssetCategory, JsonObject, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { DomainBase } from './base.js';
 
@@ -13,15 +13,15 @@ export class AssetsDomain extends DomainBase {
     return this.call('search_assets', { query, ...options });
   }
 
-  import(params: { category: AssetCategory; url: string; name?: string }) {
-    return this.call('import_media_from_url', params as JsonObject);
+  import(params: { category: AssetCategory; url: string; name?: string } & MutationOptions) {
+    return this.call('import_media_from_url', params as unknown as JsonObject);
   }
 
-  importBulk(params: { category: AssetCategory; items: BulkImportItem[] }) {
+  importBulk(params: { category: AssetCategory; items: BulkImportItem[] } & MutationOptions) {
     return this.call('bulk_import_media', params as unknown as JsonObject);
   }
 
-  async startBulkImport(params: { category: AssetCategory; items: BulkImportItem[] }) {
+  async startBulkImport(params: { category: AssetCategory; items: BulkImportItem[] } & MutationOptions) {
     const result = await this.call('start_bulk_import_media', params as unknown as JsonObject);
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'MEDIA_IMPORT', (id) => this.getBulkImportStatus(id)) : result;
@@ -44,7 +44,4 @@ export class AssetsDomain extends DomainBase {
     return this.call('move_asset', params as JsonObject);
   }
 
-  delete(category: AssetCategory, filename: string) {
-    return this.call('delete_asset', { category, filename });
-  }
 }

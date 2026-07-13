@@ -1,9 +1,9 @@
-import type { JsonObject, MaybePrepared } from '../types.js';
+import type { JsonObject, MaybePrepared, MutationOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
-export interface ProductSceneGenerationParams {
+export interface ProductSceneGenerationParams extends MutationOptions {
   selectedAvatar?: string;
   avatarUrl?: string;
   productImageUrl: string;

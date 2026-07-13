@@ -25,7 +25,12 @@ export interface ReelsFarmClientOptions {
   serverUrl?: string;
   fetch?: typeof fetch;
   dryRun?: boolean;
+  /** Confirm Review-mode prepared actions automatically. Defaults to false. */
+  autoConfirm?: boolean;
+  /** Override UUID generation for one logical mutation, primarily for CLIs and tests. */
+  idempotencyKeyFactory?: () => string;
   timeoutMs?: number;
+  operationRecoveryTimeoutMs?: number;
   validateToolSurface?: ToolSurfaceValidationMode;
   userAgent?: string;
   profile?: string;
@@ -33,13 +38,57 @@ export interface ReelsFarmClientOptions {
 
 export interface PreparedAction {
   confirmationId: string;
+  operationId?: string;
   expiresAt: string;
   summary: string;
   creditEstimate: number | null;
   nextStep?: string;
 }
 
-export type MaybePrepared<T> = T | PreparedAction;
+export interface MutationOptions {
+  /** Reuse this value when retrying the same logical mutation. */
+  idempotencyKey?: string;
+}
+
+export interface DryRunResult {
+  dryRun: true;
+  executed: false;
+  toolName?: string;
+  actionType?: string;
+  summary?: string;
+  creditEstimate?: number | null;
+  connectionMode?: 'REVIEW' | 'CREATOR' | 'AUTOPILOT';
+  policyDecision?: string;
+  policyCode?: string;
+  confirmationId?: string;
+  nextStep?: string;
+}
+
+export type McpOperationStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED_RETRYABLE' | 'FAILED_FINAL';
+
+export interface McpOperationSnapshot extends JsonObject {
+  operationId: string;
+  toolName: string;
+  actionType: string;
+  status: McpOperationStatus;
+  result: JsonObject | null;
+  error: { code: string; message: string | null } | null;
+  sourceType: string | null;
+  sourceId: string | null;
+  jobId: string | null;
+  creditReserved: number;
+  creditDeducted: number;
+  creditRefunded: number;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface McpOperationEnvelope extends JsonObject {
+  operation: McpOperationSnapshot;
+}
+
+export type MaybePrepared<T> = T | PreparedAction | DryRunResult | McpOperationEnvelope;
 
 export interface RawToolResult<T extends JsonObject = JsonObject> {
   content: Array<{ type: string; text?: string; [key: string]: unknown }>;

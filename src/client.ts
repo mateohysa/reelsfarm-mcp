@@ -18,10 +18,10 @@ import { PromptsDomain } from './domains/prompts.js';
 import { MusicDomain } from './domains/music.js';
 import { DraftsDomain } from './domains/drafts.js';
 import { TrashDomain } from './domains/trash.js';
-import { WebhooksDomain } from './domains/webhooks.js';
 import { EventsDomain } from './domains/events.js';
 import { ValidateDomain } from './domains/validate.js';
 import { ProductContextsDomain } from './domains/product-contexts.js';
+import { OperationsDomain } from './domains/operations.js';
 
 export class ReelsFarmClient {
   private readonly connection: ReelsFarmConnection;
@@ -47,16 +47,17 @@ export class ReelsFarmClient {
   readonly music: MusicDomain;
   readonly drafts: DraftsDomain;
   readonly trash: TrashDomain;
-  readonly webhooks: WebhooksDomain;
   readonly events: EventsDomain;
   readonly validate: ValidateDomain;
   readonly productContexts: ProductContextsDomain;
+  readonly operations: OperationsDomain;
 
   constructor(options: ReelsFarmClientOptions = {}) {
     const resolved = resolveOptions(options);
     this.connection = new ReelsFarmConnection(resolved);
     this.context = {
       dryRun: Boolean(resolved.dryRun),
+      autoConfirm: Boolean(resolved.autoConfirm),
       callTool: (name, args = {}) => this.connection.callTool(name, args),
     };
     this.raw = {
@@ -80,10 +81,10 @@ export class ReelsFarmClient {
     this.music = new MusicDomain(this.context);
     this.drafts = new DraftsDomain(this.context);
     this.trash = new TrashDomain(this.context);
-    this.webhooks = new WebhooksDomain(this.context);
     this.events = new EventsDomain(this.context);
     this.validate = new ValidateDomain(this.context);
     this.productContexts = new ProductContextsDomain(this.context);
+    this.operations = new OperationsDomain(this.context);
 
     if (resolved.validateToolSurface && resolved.validateToolSurface !== 'off') {
       void this.connection.validateToolSurface(resolved.validateToolSurface);

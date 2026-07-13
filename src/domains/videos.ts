@@ -1,9 +1,9 @@
-import type { JsonObject, MaybePrepared } from '../types.js';
+import type { JsonObject, MaybePrepared, MutationOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
-export interface UgcVideoGenerationParams {
+export interface UgcVideoGenerationParams extends MutationOptions {
   parts?: unknown[];
   hookUrl?: string;
   demoUrl?: string;

@@ -1,9 +1,9 @@
-import type { JsonObject, MaybePrepared, PageOptions } from '../types.js';
+import type { JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
-export interface AiCloneGenerationParams {
+export interface AiCloneGenerationParams extends MutationOptions {
   avatarUrl: string;
   motionVideoUrl: string;
   prompt?: string;
