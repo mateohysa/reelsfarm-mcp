@@ -17,6 +17,7 @@ import {
   ReelsFarmToolError,
   ReelsFarmValidationError,
   type JsonObject,
+  type GalleryFeedKind,
   type PlatformTarget,
   type PreparedAction,
   type ReelsFarmClientOptions,
@@ -32,6 +33,7 @@ type GlobalOptions = {
   json?: boolean;
   serverUrl?: string;
   apiKey?: string;
+  allowInsecureHttp?: boolean;
   profile?: string;
   wait?: boolean;
   timeout?: string;
@@ -74,6 +76,7 @@ function makeClient(command: Command, buildOptions: BuildProgramOptions): ReelsF
   const clientOptions: ReelsFarmClientOptions = {
     apiKey: opts.apiKey,
     serverUrl: opts.serverUrl,
+    allowInsecureHttp: Boolean(opts.allowInsecureHttp),
     profile: opts.profile,
     dryRun: Boolean(opts.dryRun),
     autoConfirm: Boolean(opts.yes),
@@ -277,21 +280,14 @@ async function maybeWait(value: unknown, opts: GlobalOptions): Promise<unknown> 
 }
 
 async function waitForOAuthCallback(port: number): Promise<string> {
-  return await new Promise((resolve, reject) => {
+  return await new Promise((resolve) => {
     const server = createServer((req, res) => {
       const url = new URL(req.url || '/', 'http://127.0.0.1:' + port);
-      const code = url.searchParams.get('code');
-      const error = url.searchParams.get('error');
-      if (code) {
+      if (url.pathname === '/callback' && (url.searchParams.has('code') || url.searchParams.has('error'))) {
         res.writeHead(200, { 'content-type': 'text/html' });
-        res.end('<h1>ReelsFarm login complete</h1><p>You can close this tab.</p>');
+        res.end('<h1>ReelsFarm callback received</h1><p>You can close this tab.</p>');
         server.close();
-        resolve(code);
-      } else if (error) {
-        res.writeHead(400, { 'content-type': 'text/plain' });
-        res.end(error);
-        server.close();
-        reject(new Error(error));
+        resolve(url.toString());
       }
     });
     server.listen(port, '127.0.0.1');
@@ -313,6 +309,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--json', 'print JSON output')
     .option('--agent', 'print strict agent-ready JSON envelopes')
     .option('--server-url <url>', 'MCP server URL')
+    .option('--allow-insecure-http', 'allow a trusted non-loopback HTTP MCP endpoint')
     .option('--api-key <key>', 'ReelsFarm MCP API key')
     .option('--profile <name>', 'credential profile', DEFAULT_PROFILE)
     .option('--wait', 'wait for async job completion')
@@ -348,6 +345,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       let authUrl = '';
       const clientOptions: ReelsFarmClientOptions = {
         serverUrl,
+        allowInsecureHttp: Boolean(globals.allowInsecureHttp),
         profile,
         oauth: {
           redirectUri,
@@ -363,8 +361,8 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       const callback = waitForOAuthCallback(port);
       await client.raw.listTools().catch(() => undefined);
       if (!authUrl) throw new Error('OAuth authorization URL was not produced');
-      const code = await callback;
-      await client.completeOAuth(code);
+      const callbackUrl = await callback;
+      await client.completeOAuthCallback(callbackUrl);
       await client.close();
       saveProfile(profile, { ...loadProfile(profile), serverUrl });
       (buildOptions.stdout || process.stdout).write('OAuth login complete for profile ' + profile + '\n');
@@ -387,12 +385,72 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
   const avatars = program.command('avatars');
   avatars.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.avatars.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
-  avatars.command('generate').requiredOption('--prompt <prompt>').option('--model <model>').option('--reference-url <url>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.avatars.generate({ prompt: opts.prompt, model: opts.model, referenceUrl: opts.referenceUrl }), globals), buildOptions));
+  avatars.command('templates').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.avatars.listTemplates({ limit: opts.limit ? Number(opts.limit) : undefined, cursor: opts.cursor }), buildOptions));
+  avatars.command('generate')
+    .requiredOption('--prompt <prompt>')
+    .option('--model <model>')
+    .option('--reference-url <url>')
+    .option('--conversation-id <id>')
+    .option('--parent-generation-id <id>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.avatars.generate({
+      prompt: opts.prompt,
+      model: opts.model,
+      sourceImageUrl: opts.referenceUrl,
+      conversationId: opts.conversationId,
+      parentGenerationId: opts.parentGenerationId,
+    }), globals), buildOptions));
+
+  const productScenes = program.command('product-scenes');
+  productScenes.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.productScenes.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
+  productScenes.command('generate')
+    .requiredOption('--source-image-url <url>')
+    .requiredOption('--product-image-url <url>')
+    .requiredOption('--prompt <prompt>')
+    .option('--conversation-id <id>')
+    .option('--parent-generation-id <id>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.productScenes.generate({
+      sourceImageUrl: opts.sourceImageUrl,
+      productImageUrl: opts.productImageUrl,
+      prompt: opts.prompt,
+      conversationId: opts.conversationId,
+      parentGenerationId: opts.parentGenerationId,
+    }), globals), buildOptions));
+  productScenes.command('delete').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.productScenes.delete(opts.id), buildOptions));
 
   const hooks = program.command('hooks');
   hooks.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.hooks.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   hooks.command('templates').option('--limit <n>').action((opts, command) => run(command, (client) => client.hooks.listTemplates({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
-  hooks.command('generate').requiredOption('--avatar-url <url>').option('--preset <preset>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.hooks.generate({ avatarUrl: opts.avatarUrl, preset: opts.preset }), globals), buildOptions));
+  hooks.command('generate')
+    .requiredOption('--avatar-url <url>')
+    .option('--preset <preset>')
+    .option('--model <model>')
+    .option('--duration <seconds>')
+    .option('--custom-prompt <prompt>')
+    .option('--include-audio')
+    .option('--script-text <text>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.hooks.generate({
+      avatarUrl: opts.avatarUrl,
+      preset: opts.preset,
+      model: opts.model,
+      durationSeconds: opts.duration ? Number(opts.duration) : undefined,
+      customPrompt: opts.customPrompt,
+      includeAudio: Boolean(opts.includeAudio),
+      scriptText: opts.scriptText,
+    }), globals), buildOptions));
+  hooks.command('import-capabilities').action((_, command) => run(command, (client) => client.hooks.getImportCapabilities(), buildOptions));
+  hooks.command('import-access')
+    .requiredOption('--platform <platform>')
+    .option('--profile-id <id>')
+    .action((opts, command) => run(command, (client) => client.hooks.checkImportAccess(opts.platform, opts.profileId), buildOptions));
+  hooks.command('import-clips')
+    .requiredOption('--items-json <json>')
+    .option('--fallback-profiles-json <json>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.hooks.importClips({
+      items: JSON.parse(opts.itemsJson),
+      fallbackProfiles: opts.fallbackProfilesJson ? JSON.parse(opts.fallbackProfilesJson) : undefined,
+    }), globals), buildOptions));
+  hooks.command('import-status').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.hooks.getImportStatus(opts.jobId), buildOptions));
+  hooks.command('import-cancel').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.hooks.cancelImport(opts.jobId), buildOptions));
 
   const slideshows = program.command('slideshows');
   slideshows.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.slideshows.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
@@ -400,8 +458,128 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   slideshows.command('create').requiredOption('--slides-json <json>').option('--title <title>').action((opts, command) => run(command, async (client) => {
     return client.slideshows.create({ title: opts.title, slides: JSON.parse(opts.slidesJson) });
   }, buildOptions));
-  slideshows.command('generate-text').requiredOption('--prompt <prompt>').option('--type <type>').option('--slide-count <n>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.generateText({ prompt: opts.prompt, slideshowType: opts.type, slideCount: opts.slideCount ? Number(opts.slideCount) : undefined }), globals), buildOptions));
+  slideshows.command('generate-text')
+    .requiredOption('--prompt <prompt>')
+    .option('--type <type>')
+    .option('--slide-count <n>')
+    .option('--max')
+    .option('--visual-context-json <json>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.generateText({
+      prompt: opts.prompt,
+      slideshowType: opts.type,
+      slideCount: opts.slideCount ? Number(opts.slideCount) : undefined,
+      maxMode: Boolean(opts.max),
+      visualContext: opts.visualContextJson ? JSON.parse(opts.visualContextJson) : undefined,
+    }), globals), buildOptions));
+  slideshows.command('revise-text')
+    .requiredOption('--instruction <text>')
+    .requiredOption('--slides-json <json>')
+    .option('--type <type>')
+    .option('--max')
+    .option('--visual-context-json <json>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.reviseText({
+      instruction: opts.instruction,
+      slideshowType: opts.type,
+      slides: JSON.parse(opts.slidesJson),
+      maxMode: Boolean(opts.max),
+      visualContext: opts.visualContextJson ? JSON.parse(opts.visualContextJson) : undefined,
+    }), globals), buildOptions));
   slideshows.command('finalize').requiredOption('--slideshow-id <id>').option('--slides-json <json>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.finalize({ slideshowId: opts.slideshowId, slides: opts.slidesJson ? JSON.parse(opts.slidesJson) : undefined }), globals), buildOptions));
+  slideshows.command('export-video').requiredOption('--slideshow-id <id>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.exportVideo(opts.slideshowId), globals), buildOptions));
+
+  const imageGenerations = program.command('image-generations');
+  imageGenerations.command('active').action((_, command) => run(command, (client) => client.imageGenerations.listActive(), buildOptions));
+  imageGenerations.command('job').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.imageGenerations.getJob(opts.jobId), buildOptions));
+  imageGenerations.command('conversation').requiredOption('--conversation-id <id>').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.imageGenerations.getConversation(opts.conversationId, {
+    limit: opts.limit ? Number(opts.limit) : undefined,
+    cursor: opts.cursor,
+  }), buildOptions));
+
+  const aiClones = program.command('ai-clones');
+  aiClones.command('list').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.aiClones.list({
+    limit: opts.limit ? Number(opts.limit) : undefined,
+    cursor: opts.cursor,
+  }), buildOptions));
+  aiClones.command('voices')
+    .option('--search <text>')
+    .option('--category <category>')
+    .option('--language <language>')
+    .option('--page <n>')
+    .option('--page-size <n>')
+    .action((opts, command) => run(command, (client) => client.aiClones.listVoices({
+      search: opts.search,
+      category: opts.category,
+      language: opts.language,
+      page: opts.page ? Number(opts.page) : undefined,
+      pageSize: opts.pageSize ? Number(opts.pageSize) : undefined,
+    }), buildOptions));
+  aiClones.command('generate')
+    .requiredOption('--avatar-url <url>')
+    .requiredOption('--motion-video-url <url>')
+    .option('--prompt <text>')
+    .option('--mode <mode>')
+    .option('--character-orientation <orientation>')
+    .option('--enable-voice-conversion')
+    .option('--voice-audio-url <url>')
+    .option('--voice-id <id>')
+    .option('--voice-model-id <id>')
+    .option('--remove-background-noise')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.aiClones.generate({
+      avatarUrl: opts.avatarUrl,
+      motionVideoUrl: opts.motionVideoUrl,
+      prompt: opts.prompt,
+      mode: opts.mode,
+      characterOrientation: opts.characterOrientation,
+      enableVoiceConversion: Boolean(opts.enableVoiceConversion),
+      voiceAudioUrl: opts.voiceAudioUrl,
+      voiceId: opts.voiceId,
+      voiceModelId: opts.voiceModelId,
+      removeBackgroundNoise: Boolean(opts.removeBackgroundNoise),
+    }), globals), buildOptions));
+  aiClones.command('status').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.aiClones.getJobStatus(opts.jobId), buildOptions));
+
+  const mediaCollections = program.command('media-collections');
+  mediaCollections.command('list').option('--mode <mode>').action((opts, command) => run(command, (client) => client.mediaCollections.list(opts.mode), buildOptions));
+  mediaCollections.command('gallery').option('--mode <mode>').option('--limit <n>').option('--cursor <cursor>').option('--kinds <items>').action((opts, command) => run(command, (client) => client.mediaCollections.listGallery({
+    mode: opts.mode,
+    limit: opts.limit ? Number(opts.limit) : undefined,
+    cursor: opts.cursor,
+    kinds: opts.kinds ? String(opts.kinds).split(',') as GalleryFeedKind[] : undefined,
+  }), buildOptions));
+  mediaCollections.command('items').requiredOption('--collection-id <id>').option('--mode <mode>').action((opts, command) => run(command, (client) => client.mediaCollections.getItems(opts.collectionId, opts.mode), buildOptions));
+  mediaCollections.command('create').requiredOption('--name <name>').option('--items-json <json>').action((opts, command) => run(command, (client) => client.mediaCollections.create({
+    name: opts.name,
+    initialItems: opts.itemsJson ? JSON.parse(opts.itemsJson) : undefined,
+  }), buildOptions));
+  mediaCollections.command('rename').requiredOption('--collection-id <id>').requiredOption('--name <name>').action((opts, command) => run(command, (client) => client.mediaCollections.rename(opts.collectionId, opts.name), buildOptions));
+  mediaCollections.command('memberships').requiredOption('--items-json <json>').option('--add <ids>').option('--remove <ids>').action((opts, command) => run(command, (client) => client.mediaCollections.updateMemberships({
+    items: JSON.parse(opts.itemsJson),
+    addCollectionIds: opts.add ? String(opts.add).split(',') : undefined,
+    removeCollectionIds: opts.remove ? String(opts.remove).split(',') : undefined,
+  }), buildOptions));
+  mediaCollections.command('delete-impact').requiredOption('--collection-id <id>').action((opts, command) => run(command, (client) => client.mediaCollections.getDeleteImpact(opts.collectionId), buildOptions));
+  mediaCollections.command('delete').requiredOption('--collection-id <id>').action((opts, command) => run(command, (client) => client.mediaCollections.delete(opts.collectionId), buildOptions));
+
+  const community = program.command('community');
+  community.command('collections').option('--source <source>').option('--limit <n>').option('--offset <n>').action((opts, command) => run(command, (client) => client.community.listCollections({
+    source: opts.source,
+    limit: opts.limit ? Number(opts.limit) : undefined,
+    offset: opts.offset ? Number(opts.offset) : undefined,
+  }), buildOptions));
+  community.command('images').requiredOption('--collection-id <id>').option('--limit <n>').option('--random').action((opts, command) => run(command, (client) => client.community.listImages(opts.collectionId, {
+    limit: opts.limit ? Number(opts.limit) : undefined,
+    random: Boolean(opts.random),
+  }), buildOptions));
+
+  const productContexts = program.command('product-contexts');
+  productContexts.command('list').action((_, command) => run(command, (client) => client.productContexts.list(), buildOptions));
+  productContexts.command('suggest').requiredOption('--url <url>').action((opts, command) => run(command, (client) => client.productContexts.suggestFromUrl(opts.url), buildOptions));
+  productContexts.command('create').requiredOption('--name <name>').requiredOption('--description <text>').action((opts, command) => run(command, (client) => client.productContexts.create({ name: opts.name, description: opts.description }), buildOptions));
+
+  const trash = program.command('trash');
+  trash.command('list').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.trash.list({ limit: opts.limit ? Number(opts.limit) : undefined, cursor: opts.cursor }), buildOptions));
+  trash.command('restore').requiredOption('--id <id>').requiredOption('--type <type>').action((opts, command) => run(command, (client) => client.trash.restore(opts.id, opts.type), buildOptions));
+  trash.command('restore-all').action((_, command) => run(command, (client) => client.trash.restoreAll(), buildOptions));
 
   const social = program.command('social');
   social.command('accounts').action((_, command) => run(command, (client) => client.social.list(), buildOptions));
@@ -488,7 +666,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   }, buildOptions, { forceJson: true }));
 
   program.command('completion').argument('[shell]').action((shell = 'bash') => {
-    const commands = 'login logout whoami account avatars hooks slideshows social posts assets automations events validate operations confirm agent completion';
+    const commands = 'login logout whoami account avatars product-scenes hooks ai-clones slideshows image-generations media-collections community product-contexts trash social posts assets automations events validate operations confirm agent completion';
     const script = shell === 'zsh'
       ? '#compdef reelsfarm\n_reelsfarm() { compadd ' + commands + ' }\n_reelsfarm "$@"'
       : 'complete -W "' + commands + '" reelsfarm';

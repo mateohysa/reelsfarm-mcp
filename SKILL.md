@@ -15,7 +15,8 @@ Credentials are read in this order:
 
 1. CLI flags: `--api-key`, `--server-url`, `--profile`.
 2. Environment variables: `REELSFARM_API_KEY`, `REELSFARM_ACCESS_TOKEN`,
-   `REELSFARM_MCP_URL`, `REELSFARM_AGENT_MODE`.
+   `REELSFARM_MCP_URL`, `REELSFARM_AGENT_MODE`, and the development-only
+   `REELSFARM_ALLOW_INSECURE_HTTP`.
 3. The profile config at `~/.reelsfarm/config.json`.
 
 Set `REELSFARM_AGENT_MODE=1` or pass `--agent` for strict agent output.
@@ -100,6 +101,52 @@ Generate an avatar:
 ```bash
 reelsfarm avatars generate --prompt "Creator selfie style" --agent
 reelsfarm confirm <confirmationId> --agent
+```
+
+Continue an image generation conversation:
+
+```bash
+reelsfarm avatars generate \
+  --prompt "Keep the same person and use a tighter crop" \
+  --reference-url /api/assets/user-generated?key=user-id/image.png \
+  --conversation-id 11111111-1111-4111-8111-111111111111 \
+  --parent-generation-id 22222222-2222-4222-8222-222222222222 \
+  --agent
+reelsfarm image-generations conversation \
+  --conversation-id 11111111-1111-4111-8111-111111111111 \
+  --agent
+```
+
+Revise current slideshow text through a conversational instruction:
+
+```bash
+reelsfarm slideshows revise-text \
+  --instruction "Move the title away from the face" \
+  --slides-json '[{"order":0,"textItems":[{"text":"Current title","fontSize":"24px","textStyle":"outline","textPosition":"middle","textAlign":"center"}]}]' \
+  --agent
+```
+
+Use the same gallery and collection workflow as the web app:
+
+```bash
+reelsfarm media-collections gallery --kinds COLLECTION,AVATAR --agent
+reelsfarm media-collections create --name "Launch assets" --agent
+reelsfarm community collections --source pinterest --agent
+```
+
+Inspect and start hook imports:
+
+```bash
+reelsfarm hooks import-capabilities --agent
+reelsfarm hooks import-clips \
+  --items-json '[{"url":"https://youtube.com/shorts/example","start":"0","length":"5"}]' \
+  --agent
+```
+
+Search AI Clone voices before generation:
+
+```bash
+reelsfarm ai-clones voices --search warm --category professional --agent
 ```
 
 Schedule existing content:

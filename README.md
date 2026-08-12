@@ -8,7 +8,10 @@ Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
     const rf = new ReelsFarmClient({
       apiKey: process.env.REELSFARM_API_KEY,
+      validateToolSurface: 'throw',
     });
+
+    await rf.ready();
 
     const avatar = await rf.avatars.generate({
       prompt: 'Woman in her 30s, casual outfit, smartphone selfie style',
@@ -26,6 +29,64 @@ Review mode returns a `PreparedAction` by default. Trusted applications can set
 Autopilot connections execute the capabilities enabled by their server-owned
 connection policy without an extra SDK approval step.
 
+## Conversational generation
+
+Avatar and product-scene jobs return `conversationId`, `parentGenerationId`,
+and `jobId`. Pass the conversation and parent IDs into the next generation to
+continue the same branch. Read the complete branch through
+`rf.imageGenerations.getConversation(conversationId)`.
+
+    const nextAvatar = await rf.avatars.generate({
+      prompt: 'Keep the same person and use a tighter crop',
+      sourceImageUrl: previousImageUrl,
+      conversationId,
+      parentGenerationId: previousJobId,
+    });
+
+Hook generation accepts `customPrompt`, all current Veo and Seedance models,
+duration, and optional spoken script settings. Slideshow generation accepts
+Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
+language instruction to the complete current slide text state.
+
+SDK 0.5.0 also maps the web content library workflows directly:
+
+    const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
+    const collections = await rf.mediaCollections.list();
+    const communityImages = await rf.community.listImages(collectionId, { random: true });
+    const voices = await rf.aiClones.listVoices({ search: 'warm' });
+    const importJob = await rf.hooks.importClips({
+      items: [{ url: youtubeUrl, start: "0", length: "5" }],
+    });
+
+The same MCP contracts now cover the unified gallery, personal media
+collections, community images, hook import health and jobs, AI Clone voice
+search, product-context URL suggestions, saved character identity extraction,
+and all four web trash item types.
+
+## Protocol and OAuth
+
+The SDK uses the stable MCP TypeScript SDK v2. It probes for the 2026-07-28
+protocol and falls back to the legacy 2025 handshake when required.
+
+OAuth clients should request only the capabilities they need. The default
+remains `mcp:full` for compatibility:
+
+    const rf = new ReelsFarmClient({
+      oauth: {
+        redirectUri: 'http://127.0.0.1:3456/callback',
+        scopes: ['content:read', 'content:generate'],
+        onAuthorizationUrl: openInBrowser,
+      },
+    });
+
+    await rf.raw.listTools();
+    await rf.completeOAuthCallback(callbackUrl);
+
+Pass the complete callback URL to `completeOAuthCallback`. The SDK validates
+the redirect URL, OAuth state, and authorization-server issuer before it
+redeems the code. The SDK does not expose a raw authorization-code completion
+method because that form cannot validate state by itself.
+
 ## CLI
 
     npm install -g @reelsfarm/mcp-client
@@ -33,6 +94,9 @@ connection policy without an extra SDK approval step.
     reelsfarm whoami
     reelsfarm avatars list
     reelsfarm avatars generate --prompt "Creator selfie style" --wait
+    reelsfarm media-collections gallery --kinds COLLECTION,AVATAR
+    reelsfarm ai-clones voices --search warm
+    reelsfarm hooks import-capabilities
     reelsfarm posts list --json
 
 Credentials are resolved in this order: constructor options, environment
@@ -68,7 +132,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 0.2.0 generates one UUID for every logical mutation and reuses it if the
+SDK 0.5.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.
@@ -87,16 +151,23 @@ profile token store until revoked or a security event requires authorization.
 
 ## Endpoint
 
-The default MCP endpoint is https://mcp.reelsfarm.com/mcp. Pass serverUrl in the
-SDK or --server-url in the CLI to target another deployment.
+The default MCP endpoint is https://mcp.reelsfarm.com/mcp. Pass `serverUrl` in
+the SDK or `--server-url` in the CLI to target another deployment. The SDK
+rejects non-loopback plaintext HTTP by default. Set `allowInsecureHttp: true`
+or `REELSFARM_ALLOW_INSECURE_HTTP=1` only for a trusted private development
+endpoint. The CLI also accepts `--allow-insecure-http`.
 
 ## Development
 
     npm install
     npm run typecheck
     npm test
+    npm run check:manifest
     npm run build
 
-The checked-in tool manifest intentionally reflects the current ReelsFarm MCP
-tool surface. Use npm run generate:tools against an authenticated MCP endpoint
-when the server adds or removes tools.
+The checked-in tool manifest reflects the current discoverable ReelsFarm MCP
+surface. Dashboard-only credential, webhook, and permanent-delete tools stay
+out of the public SDK catalog. The manifest check compares the 106 public SDK
+tools with the local app MCP catalog when both repositories are adjacent. Use
+npm run generate:tools against an authenticated MCP endpoint when the server
+adds or removes tools.

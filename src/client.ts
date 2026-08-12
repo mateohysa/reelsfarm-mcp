@@ -22,6 +22,9 @@ import { EventsDomain } from './domains/events.js';
 import { ValidateDomain } from './domains/validate.js';
 import { ProductContextsDomain } from './domains/product-contexts.js';
 import { OperationsDomain } from './domains/operations.js';
+import { ImageGenerationsDomain } from './domains/image-generations.js';
+import { MediaCollectionsDomain } from './domains/media-collections.js';
+import { CommunityDomain } from './domains/community.js';
 
 export class ReelsFarmClient {
   private readonly connection: ReelsFarmConnection;
@@ -51,6 +54,9 @@ export class ReelsFarmClient {
   readonly validate: ValidateDomain;
   readonly productContexts: ProductContextsDomain;
   readonly operations: OperationsDomain;
+  readonly imageGenerations: ImageGenerationsDomain;
+  readonly mediaCollections: MediaCollectionsDomain;
+  readonly community: CommunityDomain;
 
   constructor(options: ReelsFarmClientOptions = {}) {
     const resolved = resolveOptions(options);
@@ -85,14 +91,19 @@ export class ReelsFarmClient {
     this.validate = new ValidateDomain(this.context);
     this.productContexts = new ProductContextsDomain(this.context);
     this.operations = new OperationsDomain(this.context);
+    this.imageGenerations = new ImageGenerationsDomain(this.context);
+    this.mediaCollections = new MediaCollectionsDomain(this.context);
+    this.community = new CommunityDomain(this.context);
 
-    if (resolved.validateToolSurface && resolved.validateToolSurface !== 'off') {
-      void this.connection.validateToolSurface(resolved.validateToolSurface);
-    }
   }
 
-  completeOAuth(authorizationCode: string): Promise<void> {
-    return this.connection.completeOAuth(authorizationCode);
+  /** Establish the MCP connection and finish configured tool-surface validation. */
+  ready(): Promise<void> {
+    return this.connection.ready();
+  }
+
+  completeOAuthCallback(callbackUrl: string | URL): Promise<void> {
+    return this.connection.completeOAuthCallback(callbackUrl);
   }
 
   close(): Promise<void> {

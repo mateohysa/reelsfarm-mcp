@@ -1,4 +1,4 @@
-import type { AvatarModel, AvatarStyleMode, JsonObject, MaybePrepared, MutationOptions } from '../types.js';
+import type { AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
@@ -6,15 +6,22 @@ import { DomainBase } from './base.js';
 export interface AvatarGenerationParams extends MutationOptions {
   prompt: string;
   mode?: 'text' | 'reference';
+  sourceImageUrl?: string;
   referenceUrl?: string;
   model?: AvatarModel;
-  aspectRatio?: string;
+  aspectRatio?: ImageAspectRatio;
   styleMode?: AvatarStyleMode;
+  conversationId?: string;
+  parentGenerationId?: string;
 }
 
 export class AvatarsDomain extends DomainBase {
-  list(options: { limit?: number } = {}) {
-    return this.call('list_avatars', options);
+  list(options: PageOptions = {}) {
+    return this.call('list_avatars', options as JsonObject);
+  }
+
+  listTemplates(options: { limit?: number; cursor?: string } = {}) {
+    return this.call('list_avatar_templates', options);
   }
 
   async generate(params: AvatarGenerationParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {

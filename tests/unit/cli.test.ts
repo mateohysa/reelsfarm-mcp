@@ -75,6 +75,11 @@ describe('cli', () => {
     const program = buildProgram();
     expect(program.name()).toBe('reelsfarm');
     expect(program.commands.map((command) => command.name())).toContain('avatars');
+    expect(program.commands.map((command) => command.name())).toContain('image-generations');
+    expect(program.commands.map((command) => command.name())).toContain('product-scenes');
+    expect(program.commands.map((command) => command.name())).toContain('media-collections');
+    expect(program.commands.map((command) => command.name())).toContain('ai-clones');
+    expect(program.commands.map((command) => command.name())).toContain('community');
     expect(program.commands.map((command) => command.name())).toContain('agent');
     expect(program.commands.map((command) => command.name())).toContain('social');
   });

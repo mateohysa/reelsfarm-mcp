@@ -1,8 +1,16 @@
-import type { AssetCategory, JsonObject, MutationOptions, PageOptions } from '../types.js';
+import type { AssetCategory, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { DomainBase } from './base.js';
 
 export interface BulkImportItem { url: string; name?: string }
+
+export interface ProductUploadFile {
+  clientId: string;
+  filename: string;
+  contentType: 'image/png' | 'image/jpeg' | 'image/webp';
+  size: number;
+  displayName?: string;
+}
 
 export class AssetsDomain extends DomainBase {
   list(category: AssetCategory, options: PageOptions = {}) {
@@ -19,6 +27,17 @@ export class AssetsDomain extends DomainBase {
 
   importBulk(params: { category: AssetCategory; items: BulkImportItem[] } & MutationOptions) {
     return this.call('bulk_import_media', params as unknown as JsonObject);
+  }
+
+  createProductUploadSessions(
+    files: ProductUploadFile[],
+    options: MutationOptions = {},
+  ): Promise<MaybePrepared<JsonObject>> {
+    return this.call('create_product_upload_sessions', { files, ...options } as unknown as JsonObject);
+  }
+
+  completeProductUploadSessions(sessionIds: string[]) {
+    return this.call('complete_product_upload_sessions', { sessionIds });
   }
 
   async startBulkImport(params: { category: AssetCategory; items: BulkImportItem[] } & MutationOptions) {

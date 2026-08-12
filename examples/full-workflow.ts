@@ -11,4 +11,7 @@ if ('wait' in avatar) {
   console.log(result);
 }
 
+const activeTurns = await rf.imageGenerations.listActive();
+console.log(activeTurns);
+
 await rf.close();

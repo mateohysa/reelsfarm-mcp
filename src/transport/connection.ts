@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport, type StreamableHTTPClientTransportOptions } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
+import {
+  Client,
+  StreamableHTTPClientTransport,
+  UnauthorizedError,
+  type StreamableHTTPClientTransportOptions,
+} from '@modelcontextprotocol/client';
 import type { ToolName } from '../generated/index.js';
 import { toolManifest, toolNames } from '../generated/index.js';
 import { DEFAULT_MCP_SERVER_URL, DEFAULT_OPERATION_RECOVERY_TIMEOUT_MS, DEFAULT_PROFILE, DEFAULT_TIMEOUT_MS, SDK_NAME, SDK_VERSION } from '../constants.js';
-import { ReelsFarmAuthError, ReelsFarmError, ReelsFarmToolError, normalizeError, normalizeToolError } from '../errors.js';
+import { ReelsFarmAuthError, ReelsFarmError, ReelsFarmToolError, ReelsFarmValidationError, normalizeError, normalizeToolError } from '../errors.js';
 import type { JsonObject, McpOperationSnapshot, RawToolResult, ReelsFarmClientOptions } from '../types.js';
 import { loadProfile } from '../auth/config-store.js';
 import { ReelsFarmOAuthProvider } from '../auth/oauth-provider.js';
@@ -21,6 +24,15 @@ const toolsByName = new Map(toolManifest.map((tool) => [tool.name as string, too
 function isMutationTool(name: string): boolean {
   const tool = toolsByName.get(name);
   return Boolean(tool && !tool.readOnly);
+}
+
+function isKnownReadOnlyTool(name: string): boolean {
+  return toolsByName.get(name)?.readOnly === true;
+}
+
+export function isRetrySafeToolCall(name: string, args: JsonObject): boolean {
+  return isKnownReadOnlyTool(name)
+    || (isMutationTool(name) && (name === 'confirm_action' || typeof args.idempotencyKey === 'string'));
 }
 
 function isAmbiguousTransportError(error: unknown): boolean {
@@ -50,8 +62,10 @@ function readOperation(result: RawToolResult): McpOperationSnapshot | undefined 
 
 export class ReelsFarmConnection {
   private client?: Client;
+  private clientPromise?: Promise<Client>;
   private transport?: StreamableHTTPClientTransport;
   private oauthProvider?: ReelsFarmOAuthProvider;
+  private toolSurfaceValidated = false;
 
   constructor(readonly options: ResolvedClientOptions) {}
 
@@ -67,8 +81,7 @@ export class ReelsFarmConnection {
       const result = await this.callToolOnce<T>(name, requestArgs);
       return await this.maybeAutoConfirm(name, result);
     } catch (error) {
-      const retrySafe = isMutationTool(name)
-        && (name === 'confirm_action' || typeof requestArgs.idempotencyKey === 'string');
+      const retrySafe = isRetrySafeToolCall(name, requestArgs);
       if (retrySafe && isAmbiguousTransportError(error)) {
         try {
           await this.reset();
@@ -85,45 +98,99 @@ export class ReelsFarmConnection {
 
   async validateToolSurface(mode: 'warn' | 'throw' | 'off' = 'warn'): Promise<void> {
     if (mode === 'off') return;
-    const tools = await this.listTools();
+    const client = await this.getClient();
+    await this.validateConnectedToolSurface(client, mode);
+  }
+
+  async ready(): Promise<void> {
+    await this.getClient();
+  }
+
+  private async validateConnectedToolSurface(client: Client, mode: 'warn' | 'throw' | 'off'): Promise<void> {
+    if (mode === 'off' || this.toolSurfaceValidated) return;
+    const result = await client.listTools();
+    const tools = result.tools as unknown as JsonObject[];
     const serverNames = new Set(tools.map((tool) => String(tool.name)));
     const knownNames = new Set<string>(toolNames);
     const extra = [...serverNames].filter((name) => !knownNames.has(name));
     const missingRequired = ['get_account', 'get_operation'].filter((name) => !serverNames.has(name));
-    if (missingRequired.length === 0 && extra.length === 0) return;
+    if (missingRequired.length === 0 && extra.length === 0) {
+      this.toolSurfaceValidated = true;
+      return;
+    }
     const message = 'ReelsFarm MCP tool surface drift detected. Missing required tools: ' + missingRequired.join(', ') + '. Extra: ' + extra.join(', ') + '. Policy-filtered tools may be absent by design.';
     if (mode === 'throw') throw new ReelsFarmToolError(message);
     console.warn(message);
+    this.toolSurfaceValidated = true;
   }
 
-  async completeOAuth(authorizationCode: string): Promise<void> {
+  async completeOAuthCallback(callbackUrl: string | URL): Promise<void> {
     if (!this.transport) {
       await this.createTransport();
     }
-    if (!this.transport) throw new ReelsFarmAuthError('OAuth transport is not initialized');
-    await this.transport.finishAuth(authorizationCode);
+    if (!this.transport || !this.oauthProvider || !this.options.oauth) {
+      throw new ReelsFarmAuthError('OAuth transport is not initialized');
+    }
+    let callback: URL;
+    try {
+      callback = callbackUrl instanceof URL ? callbackUrl : new URL(callbackUrl);
+    } catch (error) {
+      throw new ReelsFarmAuthError('OAuth callback must be a valid absolute URL.', { cause: error });
+    }
+    const expected = new URL(this.options.oauth.redirectUri);
+    if (callback.origin !== expected.origin || callback.pathname !== expected.pathname) {
+      throw new ReelsFarmAuthError('OAuth callback URL does not match the configured redirect URI.');
+    }
+    this.oauthProvider.assertState(callback.searchParams.get('state'));
+    await this.transport.finishAuth(callback.searchParams);
+    this.oauthProvider.rotateState();
     await this.reset();
     await this.getClient();
   }
 
   async close(): Promise<void> {
+    const pending = this.clientPromise;
+    if (pending) await pending.catch(() => undefined);
     await this.reset();
   }
 
   private async getClient(): Promise<Client> {
     if (this.client) return this.client;
-    const client = new Client({ name: SDK_NAME, version: SDK_VERSION }, { capabilities: {} });
+    if (this.clientPromise) return await this.clientPromise;
+    this.clientPromise = this.connectClient();
+    try {
+      return await this.clientPromise;
+    } finally {
+      this.clientPromise = undefined;
+    }
+  }
+
+  private async connectClient(): Promise<Client> {
+    const client = new Client(
+      { name: SDK_NAME, version: SDK_VERSION },
+      {
+        capabilities: {},
+        versionNegotiation: { mode: 'auto' },
+      },
+    );
     const transport = await this.createTransport();
     try {
       await client.connect(transport, { timeout: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS });
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        this.client = client;
-        throw new ReelsFarmAuthError('OAuth authorization is required. Open the authorization URL, then call completeOAuth(code).', { cause: error });
+        throw new ReelsFarmAuthError('OAuth authorization is required. Open the authorization URL, then call completeOAuthCallback(callbackUrl).', { cause: error });
       }
+      await Promise.allSettled([client.close(), transport.close()]);
+      if (this.transport === transport) this.transport = undefined;
       throw error;
     }
     this.client = client;
+    try {
+      await this.validateConnectedToolSurface(client, this.options.validateToolSurface || 'off');
+    } catch (error) {
+      await this.reset();
+      throw error;
+    }
     return client;
   }
 
@@ -145,7 +212,6 @@ export class ReelsFarmConnection {
     const client = await this.getClient();
     const result = await client.callTool(
       { name, arguments: args },
-      undefined,
       { timeout: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS },
     );
     const raw = result as RawToolResult<T>;
@@ -212,7 +278,7 @@ export class ReelsFarmConnection {
     };
 
     if (!token && this.options.oauth) {
-      this.oauthProvider = new ReelsFarmOAuthProvider(this.options.oauth, this.options.serverUrl, this.options.profile);
+      this.oauthProvider ??= new ReelsFarmOAuthProvider(this.options.oauth, this.options.serverUrl, this.options.profile);
       transportOptions.authProvider = this.oauthProvider;
     }
 
@@ -225,6 +291,7 @@ export class ReelsFarmConnection {
     const transport = this.transport;
     this.client = undefined;
     this.transport = undefined;
+    this.toolSurfaceValidated = false;
     await Promise.allSettled([
       client?.close(),
       transport?.close(),
@@ -235,13 +302,43 @@ export class ReelsFarmConnection {
 export function resolveOptions(options: ReelsFarmClientOptions = {}): ResolvedClientOptions {
   const profile = options.profile || DEFAULT_PROFILE;
   const stored = loadProfile(profile);
+  const allowInsecureHttp = options.allowInsecureHttp
+    ?? ['1', 'true', 'yes', 'on'].includes((process.env.REELSFARM_ALLOW_INSECURE_HTTP || '').toLowerCase());
   return {
     ...options,
+    allowInsecureHttp,
     profile,
-    serverUrl: options.serverUrl || process.env.REELSFARM_MCP_URL || stored.serverUrl || DEFAULT_MCP_SERVER_URL,
+    serverUrl: normalizeServerUrl(
+      options.serverUrl || process.env.REELSFARM_MCP_URL || stored.serverUrl || DEFAULT_MCP_SERVER_URL,
+      allowInsecureHttp,
+    ),
     apiKey: options.apiKey || process.env.REELSFARM_API_KEY || stored.apiKey,
     accessToken: options.accessToken || process.env.REELSFARM_ACCESS_TOKEN || stored.accessToken,
   };
+}
+
+export function normalizeServerUrl(value: string, allowInsecureHttp = false): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch (error) {
+    throw new ReelsFarmValidationError('serverUrl must be a valid absolute HTTP or HTTPS URL.', {
+      cause: error,
+      code: 'INVALID_SERVER_URL',
+    });
+  }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) {
+    throw new ReelsFarmValidationError('serverUrl must use HTTP or HTTPS and cannot contain credentials or a URL fragment.', {
+      code: 'INVALID_SERVER_URL',
+    });
+  }
+  const loopback = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(url.hostname);
+  if (url.protocol === 'http:' && !loopback && !allowInsecureHttp) {
+    throw new ReelsFarmValidationError('Refusing to send ReelsFarm credentials over non-loopback HTTP. Use HTTPS or set allowInsecureHttp explicitly.', {
+      code: 'INSECURE_SERVER_URL',
+    });
+  }
+  return url.toString();
 }
 
 export function resolveBearerToken(options: ReelsFarmClientOptions): string | undefined {

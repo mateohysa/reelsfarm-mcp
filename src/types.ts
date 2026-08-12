@@ -14,15 +14,40 @@ export interface ReelsFarmOAuthOptions {
   clientId?: string;
   clientName?: string;
   redirectUri: string;
+  /** Request only the capabilities this client needs. Defaults to mcp:full for compatibility. */
+  scopes?: ReelsFarmOAuthScope[];
   onAuthorizationUrl: (url: string) => void | Promise<void>;
   tokenStore?: TokenStore;
 }
+
+export type ReelsFarmOAuthScope =
+  | 'mcp:full'
+  | 'account:read'
+  | 'assets:read'
+  | 'assets:write'
+  | 'assets:delete_reversible'
+  | 'content:read'
+  | 'content:write'
+  | 'content:generate'
+  | 'content:delete_reversible'
+  | 'posts:read'
+  | 'posts:schedule'
+  | 'posts:publish'
+  | 'posts:cancel'
+  | 'automations:read'
+  | 'automations:manage'
+  | 'events:read'
+  | 'webhooks:manage'
+  | 'credentials:manage'
+  | 'content:delete_permanent';
 
 export interface ReelsFarmClientOptions {
   apiKey?: string;
   accessToken?: string;
   oauth?: ReelsFarmOAuthOptions;
   serverUrl?: string;
+  /** Allow bearer credentials over non-loopback HTTP. Keep false for production. */
+  allowInsecureHttp?: boolean;
   fetch?: typeof fetch;
   dryRun?: boolean;
   /** Confirm Review-mode prepared actions automatically. Defaults to false. */
@@ -106,8 +131,11 @@ export type AssetCategory = 'characters' | 'products' | 'hooks' | 'demos' | 'sou
 export type Platform = 'TIKTOK' | 'INSTAGRAM' | 'YOUTUBE' | 'FACEBOOK';
 export type PlatformSlug = 'tiktok' | 'instagram' | 'youtube' | 'facebook';
 export type SlideshowType = 'EDUCATIONAL' | 'PROMOTIONAL' | 'STORYTELLING' | 'LIFESTYLE' | 'REVIEW';
-export type AvatarModel = 'nano-banana-pro' | 'nano-banana-2-pro' | 'gpt-image-2';
+export type AvatarModel = 'nano-banana-pro' | 'nano-banana-2-pro' | 'gpt-image-2' | 'seedream-5-pro';
 export type AvatarStyleMode = 'default' | 'pinterest' | 'linkedin';
+export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
+export type HookGenerationModel = 'veo-3.1-fast' | 'veo-3.1' | 'seedance-2-fast' | 'seedance-2' | 'seedance-2.5';
+export type HookGenerationPreset = 'subtle_pan' | 'surprised_reaction' | 'nod_smile';
 
 export interface PlatformTarget {
   platform: Platform;
