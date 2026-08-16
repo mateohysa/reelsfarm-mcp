@@ -10,7 +10,7 @@ import {
 
 describe('errors', () => {
   it('classifies tool error rate-limit messages as retryable rate limits', () => {
-    const error = normalizeError(new ReelsFarmToolError('Rate limit exceeded. Retry after 12 seconds.', 'get_account'), 'get_account');
+    const error = normalizeError(new ReelsFarmToolError('Rate limit exceeded. Retry after 12 seconds.', 'reelsfarm_get_account'), 'reelsfarm_get_account');
 
     expect(error).toBeInstanceOf(ReelsFarmRateLimitError);
     expect(error.message).toContain('Rate limit exceeded');
@@ -27,7 +27,7 @@ describe('errors', () => {
   });
 
   it('preserves idempotency conflicts and operation IDs', () => {
-    const error = normalizeToolError('Key reused', 'prepare_generate_avatar', {
+    const error = normalizeToolError('Key reused', 'reelsfarm_prepare_generate_avatar', {
       'mcp/error_code': ['IDEMPOTENCY_KEY_REUSED'],
       'mcp/operation_id': ['op_1'],
     });

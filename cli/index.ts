@@ -618,7 +618,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   validate.command('caption').argument('<text>').requiredOption('--platforms <items>').action((text, opts, command) => run(command, (client) => client.validate.caption(text, String(opts.platforms).split(',').map((item) => item.toUpperCase() as PlatformTarget['platform'])), buildOptions));
 
   program.command('confirm').argument('<confirmationId>').action((confirmationId, _opts, command) => run(command, async (client) => {
-    const result = await client.raw.callTool('confirm_action', { confirmationId });
+    const result = await client.raw.callTool('reelsfarm_confirm_action', { confirmationId });
     return extractStructuredContent(result);
   }, buildOptions));
 

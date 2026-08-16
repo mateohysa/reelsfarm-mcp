@@ -8,7 +8,7 @@ const TERMINAL = new Set<McpOperationSnapshot['status']>(['SUCCEEDED', 'FAILED_R
 
 export class OperationsDomain extends DomainBase {
   async get(operationId: string): Promise<McpOperationSnapshot> {
-    const result = await this.call<{ operation: McpOperationSnapshot }>('get_operation', { operationId });
+    const result = await this.call<{ operation: McpOperationSnapshot }>('reelsfarm_get_operation', { operationId });
     return result.operation;
   }
 

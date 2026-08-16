@@ -30,34 +30,34 @@ export interface MediaCollectionMembershipState extends JsonObject {
 
 export class MediaCollectionsDomain extends DomainBase {
   list(mode: 'all' | 'slideshow-picker' = 'all') {
-    return this.call<{ collections: MediaCollectionSummary[] }>('list_media_collections', { mode });
+    return this.call<{ collections: MediaCollectionSummary[] }>('reelsfarm_list_media_collections', { mode });
   }
 
   listGallery(options: PageOptions & {
     mode?: 'all' | 'slideshow-picker';
     kinds?: GalleryFeedKind[];
   } = {}) {
-    return this.call('list_gallery_feed', options as JsonObject);
+    return this.call('reelsfarm_list_gallery_feed', options as JsonObject);
   }
 
   getItems(collectionId: string, mode: 'all' | 'slideshow-picker' = 'all') {
-    return this.call('get_media_collection_items', { collectionId, mode });
+    return this.call('reelsfarm_get_media_collection_items', { collectionId, mode });
   }
 
   getMembershipState(items: MediaAssetReference[]) {
-    return this.call<MediaCollectionMembershipState>('get_media_collection_membership_state', { items } as unknown as JsonObject);
+    return this.call<MediaCollectionMembershipState>('reelsfarm_get_media_collection_membership_state', { items } as unknown as JsonObject);
   }
 
   getDeleteImpact(collectionId: string) {
-    return this.call('get_media_collection_delete_impact', { collectionId });
+    return this.call('reelsfarm_get_media_collection_delete_impact', { collectionId });
   }
 
   create(params: { name: string; initialItems?: MediaAssetReference[] } & MutationOptions): Promise<MaybePrepared<JsonObject>> {
-    return this.call('create_media_collection', params as unknown as JsonObject);
+    return this.call('reelsfarm_create_media_collection', params as unknown as JsonObject);
   }
 
   rename(collectionId: string, name: string, options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {
-    return this.call('rename_media_collection', { collectionId, name, ...options });
+    return this.call('reelsfarm_rename_media_collection', { collectionId, name, ...options });
   }
 
   updateMemberships(params: {
@@ -65,10 +65,10 @@ export class MediaCollectionsDomain extends DomainBase {
     addCollectionIds?: string[];
     removeCollectionIds?: string[];
   } & MutationOptions): Promise<MaybePrepared<JsonObject>> {
-    return this.call('update_media_collection_memberships', params as unknown as JsonObject);
+    return this.call('reelsfarm_update_media_collection_memberships', params as unknown as JsonObject);
   }
 
   delete(collectionId: string, options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {
-    return this.call('delete_media_collection', { collectionId, ...options });
+    return this.call('reelsfarm_delete_media_collection', { collectionId, ...options });
   }
 }

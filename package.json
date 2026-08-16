@@ -1,6 +1,6 @@
 {
   "name": "@reelsfarm/mcp-client",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Typed TypeScript SDK and CLI for the ReelsFarm MCP server.",
   "type": "module",
   "license": "MIT",
@@ -33,7 +33,10 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "reelsfarm": "./dist/cli/index.js"
+    "reelsfarm": "dist/cli/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist",

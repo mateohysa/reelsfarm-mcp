@@ -23,20 +23,20 @@ if (unique.size !== toolNames.length) {
   throw new Error('Tool manifest contains duplicate names');
 }
 for (const required of [
-  'get_operation',
-  'get_generated_hook_status',
-  'get_image_generation_conversation',
-  'get_slideshow_text_job_status',
-  'get_slideshow_revision_job_status',
-  'get_slideshow_export_job_status',
-  'list_gallery_feed',
-  'list_media_collections',
-  'prepare_import_hook_clips',
-  'list_ai_clone_voices',
-  'list_community_images',
-  'list_avatar_templates',
-  'prepare_save_character',
-  'delete_gallery_image',
+  'reelsfarm_get_operation',
+  'reelsfarm_get_generated_hook_status',
+  'reelsfarm_get_image_generation_conversation',
+  'reelsfarm_get_slideshow_text_job_status',
+  'reelsfarm_get_slideshow_revision_job_status',
+  'reelsfarm_get_slideshow_export_job_status',
+  'reelsfarm_list_gallery_feed',
+  'reelsfarm_list_media_collections',
+  'reelsfarm_prepare_import_hook_clips',
+  'reelsfarm_list_ai_clone_voices',
+  'reelsfarm_list_community_images',
+  'reelsfarm_list_avatar_templates',
+  'reelsfarm_prepare_save_character',
+  'reelsfarm_delete_gallery_image',
 ]) {
   if (!unique.has(required as never)) {
     throw new Error('Missing required corrected tool name: ' + required);
@@ -52,7 +52,8 @@ if (existsSync(serverSourcePath)) {
   const serverTools = [...toolsBlock.matchAll(/^ {4}name:\s*'([a-z0-9_]+)'/gm)]
     .map((match) => match[1])
     .filter((name): name is string => Boolean(name))
-    .filter((name) => !dashboardOnlyTools.has(name));
+    .filter((name) => !dashboardOnlyTools.has(name))
+    .map((name) => `reelsfarm_${name}`);
   const sdkTools = new Set<string>(toolNames);
   const missing = serverTools.filter((name) => !sdkTools.has(name));
   const extra = toolNames.filter((name) => !serverTools.includes(name));

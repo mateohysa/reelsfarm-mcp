@@ -23,7 +23,7 @@ export async function prepareAndConfirm<T extends JsonObject>(
   if (context.dryRun || !context.autoConfirm) return preparedOrExecuted;
 
   try {
-    return extractStructuredContent<T>(await context.callTool('confirm_action', { confirmationId: preparedOrExecuted.confirmationId }));
+    return extractStructuredContent<T>(await context.callTool('reelsfarm_confirm_action', { confirmationId: preparedOrExecuted.confirmationId }));
   } catch (error) {
     throw new ReelsFarmConfirmationError(
       'Confirmation did not complete. The SDK will not prepare or execute a replacement action. Inspect the original operation or retry this confirmation ID.',

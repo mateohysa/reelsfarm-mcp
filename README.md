@@ -2,6 +2,14 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
+## Version 0.6 migration
+
+ReelsFarm MCP server 2.0 prefixes every raw tool identifier with `reelsfarm_`.
+For example, use `reelsfarm_list_avatars` instead of `list_avatars`. SDK 0.6
+keeps the higher-level methods unchanged, so calls such as `rf.avatars.list()`
+do not need changes. Code that uses `rf.raw.callTool(...)` must add the prefix.
+The server does not expose aliases for the previous raw names.
+
     npm install @reelsfarm/mcp-client
 
     import { ReelsFarmClient } from '@reelsfarm/mcp-client';
@@ -48,7 +56,7 @@ duration, and optional spoken script settings. Slideshow generation accepts
 Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
 language instruction to the complete current slide text state.
 
-SDK 0.5.0 also maps the web content library workflows directly:
+SDK 0.6.0 also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -132,7 +140,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 0.5.0 generates one UUID for every logical mutation and reuses it if the
+SDK 0.6.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.

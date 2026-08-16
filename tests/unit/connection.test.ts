@@ -22,9 +22,9 @@ describe('connection safety', () => {
   });
 
   it('retries known reads and idempotent mutations, but not unknown raw tools', () => {
-    expect(isRetrySafeToolCall('get_account', {})).toBe(true);
-    expect(isRetrySafeToolCall('prepare_generate_avatar', { idempotencyKey: 'logical-1' })).toBe(true);
-    expect(isRetrySafeToolCall('prepare_generate_avatar', {})).toBe(false);
+    expect(isRetrySafeToolCall('reelsfarm_get_account', {})).toBe(true);
+    expect(isRetrySafeToolCall('reelsfarm_prepare_generate_avatar', { idempotencyKey: 'logical-1' })).toBe(true);
+    expect(isRetrySafeToolCall('reelsfarm_prepare_generate_avatar', {})).toBe(false);
     expect(isRetrySafeToolCall('unknown_raw_tool', {})).toBe(false);
   });
 

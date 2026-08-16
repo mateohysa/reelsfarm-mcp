@@ -5,11 +5,11 @@ import { DomainBase } from './base.js';
 export type AutomationDefinition = JsonObject;
 
 export class AutomationsDomain extends DomainBase {
-  list(options: { includeRecentGenerations?: boolean } = {}) { return this.call('list_automations', options); }
+  list(options: { includeRecentGenerations?: boolean } = {}) { return this.call('reelsfarm_list_automations', options); }
   create(params: AutomationDefinition): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_create_automation', params);
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_create_automation', params);
   }
   update(id: string, params: AutomationDefinition): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_update_automation', { id, ...params });
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_update_automation', { id, ...params });
   }
 }

@@ -31,7 +31,7 @@ describe('generation conversation contracts', () => {
     });
 
     expect(calls[0]).toMatchObject({
-      name: 'prepare_generate_avatar',
+      name: 'reelsfarm_prepare_generate_avatar',
       args: {
         sourceImageUrl: '/api/assets/user-generated?key=user-1/image.png',
         conversationId: '11111111-1111-4111-8111-111111111111',
@@ -51,7 +51,7 @@ describe('generation conversation contracts', () => {
     });
 
     expect(calls[0]).toMatchObject({
-      name: 'prepare_generate_hook',
+      name: 'reelsfarm_prepare_generate_hook',
       args: { model: 'seedance-2.5', durationSeconds: 6, customPrompt: expect.any(String) },
     });
   });
@@ -75,7 +75,7 @@ describe('generation conversation contracts', () => {
     });
 
     expect(calls[0]).toMatchObject({
-      name: 'prepare_revise_slideshow_text',
+      name: 'reelsfarm_prepare_revise_slideshow_text',
       args: { maxMode: true, visualContext: [{ order: 0 }], slides: [{ order: 0 }] },
     });
   });
@@ -92,7 +92,7 @@ describe('generation conversation contracts', () => {
 
     expect(result).toEqual(conversation);
     expect(calls[0]).toMatchObject({
-      name: 'get_image_generation_conversation',
+      name: 'reelsfarm_get_image_generation_conversation',
       args: { conversationId: conversation.conversationId, limit: 20 },
     });
   });

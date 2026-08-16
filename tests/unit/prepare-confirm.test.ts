@@ -19,7 +19,7 @@ describe('prepareAndConfirm', () => {
       async callTool() {
         return { content: [], structuredContent: prepared };
       },
-    }, 'prepare_generate_avatar', { prompt: 'x' });
+    }, 'reelsfarm_prepare_generate_avatar', { prompt: 'x' });
     expect(result).toMatchObject({ confirmationId: 'c1', operationId: 'op1' });
   });
 
@@ -29,13 +29,13 @@ describe('prepareAndConfirm', () => {
       dryRun: false,
       autoConfirm: true,
       async callTool(name) {
-        if (name === 'confirm_action') {
+        if (name === 'reelsfarm_confirm_action') {
           confirmCalls += 1;
           return { content: [], structuredContent: { jobId: 'job_1', status: 'PENDING' } };
         }
         return { content: [], structuredContent: prepared };
       },
-    }, 'prepare_generate_avatar', { prompt: 'x' });
+    }, 'reelsfarm_prepare_generate_avatar', { prompt: 'x' });
     expect(result).toMatchObject({ jobId: 'job_1' });
     expect(confirmCalls).toBe(1);
   });
@@ -49,7 +49,7 @@ describe('prepareAndConfirm', () => {
         calls += 1;
         return { content: [], structuredContent: { jobId: 'job_1', status: 'PENDING' } };
       },
-    }, 'prepare_generate_avatar', { prompt: 'x' });
+    }, 'reelsfarm_prepare_generate_avatar', { prompt: 'x' });
     expect(result).toMatchObject({ jobId: 'job_1' });
     expect(calls).toBe(1);
   });
@@ -60,11 +60,11 @@ describe('prepareAndConfirm', () => {
       dryRun: false,
       autoConfirm: true,
       async callTool(name) {
-        if (name === 'confirm_action') throw new Error('Confirmation already used');
+        if (name === 'reelsfarm_confirm_action') throw new Error('Confirmation already used');
         prepareCalls += 1;
         return { content: [], structuredContent: prepared };
       },
-    }, 'prepare_generate_avatar', { prompt: 'x' })).rejects.toBeInstanceOf(ReelsFarmConfirmationError);
+    }, 'reelsfarm_prepare_generate_avatar', { prompt: 'x' })).rejects.toBeInstanceOf(ReelsFarmConfirmationError);
     expect(prepareCalls).toBe(1);
   });
 });

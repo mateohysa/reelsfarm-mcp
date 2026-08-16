@@ -65,18 +65,18 @@ export interface AiCloneVoicesPage extends JsonObject {
 }
 
 export class AiClonesDomain extends DomainBase {
-  list(options: PageOptions = {}) { return this.call('list_ai_clone_assets', options as JsonObject); }
-  listVoices(options: AiCloneVoiceQuery = {}) { return this.call<AiCloneVoicesPage>('list_ai_clone_voices', options); }
+  list(options: PageOptions = {}) { return this.call('reelsfarm_list_ai_clone_assets', options as JsonObject); }
+  listVoices(options: AiCloneVoiceQuery = {}) { return this.call<AiCloneVoicesPage>('reelsfarm_list_ai_clone_voices', options); }
 
   async generate(params: AiCloneGenerationParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_ai_clone_job', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_ai_clone_job', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'AI_CLONE', (id) => this.getJobStatus(id)) : result;
   }
 
   async getJobStatus(jobId: string) {
-    const result = await this.call('get_ai_clone_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_ai_clone_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 }

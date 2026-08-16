@@ -15,19 +15,19 @@ export interface ProductSceneGenerationParams extends MutationOptions {
 }
 
 export class ProductScenesDomain extends DomainBase {
-  list(options: PageOptions = {}) { return this.call('list_gallery', options as JsonObject); }
+  list(options: PageOptions = {}) { return this.call('reelsfarm_list_gallery', options as JsonObject); }
 
   async generate(params: ProductSceneGenerationParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_generate_product_scene', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_product_scene', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'PRODUCT_PLACEMENT', (id) => this.getJobStatus(id)) : result;
   }
 
   async getJobStatus(jobId: string) {
-    const result = await this.call('get_product_scene_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_product_scene_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
-  delete(id: string) { return this.call('delete_gallery_image', { id }); }
+  delete(id: string) { return this.call('reelsfarm_delete_gallery_image', { id }); }
 }

@@ -331,7 +331,7 @@ describe('cli', () => {
     });
   });
 
-  it('confirms prepared actions with confirm_action', async () => {
+  it('confirms prepared actions with reelsfarm_confirm_action', async () => {
     let calledWith: unknown;
     const result = await runCli(['--agent', 'confirm', 'conf_123'], () => createClient({
       raw: {
@@ -343,7 +343,7 @@ describe('cli', () => {
       },
     }));
 
-    expect(calledWith).toEqual({ name: 'confirm_action', args: { confirmationId: 'conf_123' } });
+    expect(calledWith).toEqual({ name: 'reelsfarm_confirm_action', args: { confirmationId: 'conf_123' } });
     expect(result.json).toMatchObject({
       ok: true,
       command: 'confirm',

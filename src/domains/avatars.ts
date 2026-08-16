@@ -17,29 +17,29 @@ export interface AvatarGenerationParams extends MutationOptions {
 
 export class AvatarsDomain extends DomainBase {
   list(options: PageOptions = {}) {
-    return this.call('list_avatars', options as JsonObject);
+    return this.call('reelsfarm_list_avatars', options as JsonObject);
   }
 
   listTemplates(options: { limit?: number; cursor?: string } = {}) {
-    return this.call('list_avatar_templates', options);
+    return this.call('reelsfarm_list_avatar_templates', options);
   }
 
   async generate(params: AvatarGenerationParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_generate_avatar', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_avatar', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'AVATAR', (id) => this.getJobStatus(id)) : result;
   }
 
   async generateBatch(items: AvatarGenerationParams[], options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_batch_generate_avatars', { items, ...options } as unknown as JsonObject);
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_batch_generate_avatars', { items, ...options } as unknown as JsonObject);
   }
 
   async getJobStatus(jobId: string) {
-    const result = await this.call('get_avatar_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_avatar_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
-  delete(id: string) { return this.call('delete_avatar', { id }); }
-  duplicate(id: string, name?: string) { return this.call('duplicate_avatar', { id, name }); }
+  delete(id: string) { return this.call('reelsfarm_delete_avatar', { id }); }
+  duplicate(id: string, name?: string) { return this.call('reelsfarm_duplicate_avatar', { id, name }); }
 }

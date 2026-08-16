@@ -36,9 +36,9 @@ describe('web workflow parity', () => {
     });
 
     expect(calls.map((call) => call.name)).toEqual([
-      'list_gallery_feed',
-      'create_media_collection',
-      'update_media_collection_memberships',
+      'reelsfarm_list_gallery_feed',
+      'reelsfarm_create_media_collection',
+      'reelsfarm_update_media_collection_memberships',
     ]);
   });
 
@@ -55,8 +55,8 @@ describe('web workflow parity', () => {
     await assets.completeProductUploadSessions(['11111111-1111-4111-8111-111111111111']);
 
     expect(calls.map((call) => call.name)).toEqual([
-      'create_product_upload_sessions',
-      'complete_product_upload_sessions',
+      'reelsfarm_create_product_upload_sessions',
+      'reelsfarm_complete_product_upload_sessions',
     ]);
   });
 
@@ -72,9 +72,9 @@ describe('web workflow parity', () => {
     });
 
     expect(calls.map((call) => call.name)).toEqual([
-      'get_hook_import_capabilities',
-      'check_hook_import_access',
-      'prepare_import_hook_clips',
+      'reelsfarm_get_hook_import_capabilities',
+      'reelsfarm_check_hook_import_access',
+      'reelsfarm_prepare_import_hook_clips',
     ]);
   });
 
@@ -92,9 +92,9 @@ describe('web workflow parity', () => {
       removeBackgroundNoise: true,
     });
 
-    expect(calls[0]).toMatchObject({ name: 'list_ai_clone_voices', args: { search: 'warm' } });
+    expect(calls[0]).toMatchObject({ name: 'reelsfarm_list_ai_clone_voices', args: { search: 'warm' } });
     expect(calls[1]).toMatchObject({
-      name: 'prepare_ai_clone_job',
+      name: 'reelsfarm_prepare_ai_clone_job',
       args: { voiceId: 'voice-1', voiceModelId: 'eleven_multilingual_sts_v2', removeBackgroundNoise: true },
     });
   });
@@ -112,10 +112,10 @@ describe('web workflow parity', () => {
     });
 
     expect(calls.map((call) => call.name)).toEqual([
-      'list_community_images',
-      'suggest_product_context_from_url',
-      'restore_trash_item',
-      'prepare_generate_ugc_video',
+      'reelsfarm_list_community_images',
+      'reelsfarm_suggest_product_context_from_url',
+      'reelsfarm_restore_trash_item',
+      'reelsfarm_prepare_generate_ugc_video',
     ]);
     expect(calls[3]!.args).toMatchObject({ textPosition: 'BOTTOM', quality: 'high' });
   });

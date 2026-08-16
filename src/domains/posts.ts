@@ -21,30 +21,30 @@ function serializeDate(value: string | Date): string {
 
 export class PostsDomain extends DomainBase {
   list(options: { limit?: number; cursor?: string; status?: string; startDate?: string; endDate?: string; platform?: string; accountId?: string } = {}) {
-    return this.call('list_scheduled_posts', options);
+    return this.call('reelsfarm_list_scheduled_posts', options);
   }
-  getStatus(id: string) { return this.call('get_publish_status', { id }); }
-  getOptimalTimes(options: { platform?: string; limit?: number } = {}) { return this.call('get_optimal_posting_times', options); }
+  getStatus(id: string) { return this.call('reelsfarm_get_publish_status', { id }); }
+  getOptimalTimes(options: { platform?: string; limit?: number } = {}) { return this.call('reelsfarm_get_optimal_posting_times', options); }
 
   schedule(params: SchedulePostParams): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_schedule_post', { ...params, scheduledFor: serializeDate(params.scheduledFor) } as unknown as JsonObject);
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_schedule_post', { ...params, scheduledFor: serializeDate(params.scheduledFor) } as unknown as JsonObject);
   }
 
   publishNow(params: PublishParams): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_publish_now', params as unknown as JsonObject);
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_publish_now', params as unknown as JsonObject);
   }
 
   batchPublish(params: PublishParams): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_batch_publish', params as unknown as JsonObject);
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_batch_publish', params as unknown as JsonObject);
   }
 
   update(id: string, params: { scheduledFor?: string | Date; timezone?: string; caption?: string } & MutationOptions): Promise<MaybePrepared<JsonObject>> {
-    return prepareAndConfirm<JsonObject>(this.context, 'prepare_update_scheduled_post', {
+    return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_update_scheduled_post', {
       id,
       ...params,
       scheduledFor: params.scheduledFor ? serializeDate(params.scheduledFor) : undefined,
     } as unknown as JsonObject);
   }
 
-  cancel(id: string, options: MutationOptions = {}) { return this.call('cancel_scheduled_post', { id, ...options }); }
+  cancel(id: string, options: MutationOptions = {}) { return this.call('reelsfarm_cancel_scheduled_post', { id, ...options }); }
 }

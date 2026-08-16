@@ -37,17 +37,17 @@ export interface SlideshowRevisionSlide {
 
 export class SlideshowsDomain extends DomainBase {
   list(options: PageOptions & { status?: 'DRAFT' | 'EXPORTED' } = {}) {
-    return this.call('list_slideshows', options as JsonObject);
+    return this.call('reelsfarm_list_slideshows', options as JsonObject);
   }
-  get(id: string) { return this.call('get_slideshow', { id }); }
+  get(id: string) { return this.call('reelsfarm_get_slideshow', { id }); }
   create(params: { title?: string; prompt?: string; slideshowType?: SlideshowType; settings?: JsonObject; slides: SlideshowSlideData[] } & MutationOptions) {
-    return this.call('create_slideshow', params as unknown as JsonObject);
+    return this.call('reelsfarm_create_slideshow', params as unknown as JsonObject);
   }
   update(id: string, params: { title?: string; prompt?: string; slideshowType?: SlideshowType; status?: 'DRAFT' | 'EXPORTED'; settings?: JsonObject; slides?: SlideshowSlideData[] }) {
-    return this.call('update_slideshow', { id, ...params } as unknown as JsonObject);
+    return this.call('reelsfarm_update_slideshow', { id, ...params } as unknown as JsonObject);
   }
-  delete(id: string) { return this.call('delete_slideshow', { id }); }
-  duplicate(id: string, title?: string) { return this.call('duplicate_slideshow', { id, title }); }
+  delete(id: string) { return this.call('reelsfarm_delete_slideshow', { id }); }
+  duplicate(id: string, title?: string) { return this.call('reelsfarm_duplicate_slideshow', { id, title }); }
 
   async generateText(params: {
     prompt: string;
@@ -57,7 +57,7 @@ export class SlideshowsDomain extends DomainBase {
     maxMode?: boolean;
     visualContext?: SlideshowVisualContextReference[];
   } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_generate_slideshow_text', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_slideshow_text', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_TEXT', (id) => this.getTextJobStatus(id)) : result;
@@ -71,36 +71,36 @@ export class SlideshowsDomain extends DomainBase {
     maxMode?: boolean;
     visualContext?: SlideshowVisualContextReference[];
   } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_revise_slideshow_text', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_revise_slideshow_text', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_REVISION', (id) => this.getRevisionJobStatus(id)) : result;
   }
 
   async finalize(params: { slideshowId: string; slides?: SlideshowSlideData[] } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_finalize_slideshow', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_finalize_slideshow', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_EXPORT', (id) => this.getExportJobStatus(id)) : result;
   }
 
   async getTextJobStatus(jobId: string) {
-    const result = await this.call('get_slideshow_text_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_slideshow_text_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
   async getExportJobStatus(jobId: string) {
-    const result = await this.call('get_slideshow_export_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_slideshow_export_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
   async getRevisionJobStatus(jobId: string) {
-    const result = await this.call('get_slideshow_revision_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_slideshow_revision_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
   async exportVideo(slideshowId: string, options: MutationOptions = {}): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_export_slideshow_video', {
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_export_slideshow_video', {
       slideshowId,
       ...options,
     });
@@ -110,7 +110,7 @@ export class SlideshowsDomain extends DomainBase {
   }
 
   getVideoExportJobStatus(jobId: string) {
-    return this.call('get_slideshow_video_export_job_status', { jobId });
+    return this.call('reelsfarm_get_slideshow_video_export_job_status', { jobId });
   }
 
   getJobStatus(jobId: string, type: 'text' | 'revision' | 'export' | 'video' = 'text') {

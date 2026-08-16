@@ -28,37 +28,37 @@ export interface HookClipImportParams extends MutationOptions {
 }
 
 export class HooksDomain extends DomainBase {
-  list(options: PageOptions = {}) { return this.call('list_generated_hooks', options as JsonObject); }
-  listTemplates(options: { limit?: number; page?: number } = {}) { return this.call('list_template_hooks', options); }
-  getImportCapabilities() { return this.call('get_hook_import_capabilities'); }
+  list(options: PageOptions = {}) { return this.call('reelsfarm_list_generated_hooks', options as JsonObject); }
+  listTemplates(options: { limit?: number; page?: number } = {}) { return this.call('reelsfarm_list_template_hooks', options); }
+  getImportCapabilities() { return this.call('reelsfarm_get_hook_import_capabilities'); }
   checkImportAccess(platform: 'youtube' | 'tiktok', profileId?: string) {
-    return this.call('check_hook_import_access', { platform, profileId });
+    return this.call('reelsfarm_check_hook_import_access', { platform, profileId });
   }
 
   async generate(params: HookGenerationParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_generate_hook', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_hook', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'HOOK', (id) => this.getJobStatus(id)) : result;
   }
 
   async getJobStatus(jobId: string) {
-    const result = await this.call('get_generated_hook_status', { jobId });
+    const result = await this.call('reelsfarm_get_generated_hook_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
   async importClips(params: HookClipImportParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_import_hook_clips', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_import_hook_clips', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'HOOK_IMPORT', (id) => this.getImportStatus(id)) : result;
   }
 
   async getImportStatus(jobId: string) {
-    return this.call('get_hook_clip_import_status', { jobId });
+    return this.call('reelsfarm_get_hook_clip_import_status', { jobId });
   }
 
   cancelImport(jobId: string, options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {
-    return this.call('cancel_hook_clip_import', { jobId, ...options });
+    return this.call('reelsfarm_cancel_hook_clip_import', { jobId, ...options });
   }
 }

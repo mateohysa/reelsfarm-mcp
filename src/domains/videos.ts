@@ -16,20 +16,20 @@ export interface UgcVideoGenerationParams extends MutationOptions {
 export class VideosDomain extends DomainBase {
   list(options: PageOptions & {
     sourceType?: 'UGC_COMPOSITION' | 'SLIDESHOW' | 'GENERATED_HOOK' | 'AI_CLONE';
-  } = {}) { return this.call('list_videos', options as JsonObject); }
+  } = {}) { return this.call('reelsfarm_list_videos', options as JsonObject); }
 
   async generate(params: UgcVideoGenerationParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
-    const result = await prepareAndConfirm<JsonObject>(this.context, 'prepare_generate_ugc_video', params as unknown as JsonObject);
+    const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_ugc_video', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
     return jobId ? new ReelsFarmJob(jobId, 'UGC_VIDEO', (id) => this.getJobStatus(id)) : result;
   }
 
   async getJobStatus(jobId: string) {
-    const result = await this.call('get_video_job_status', { jobId });
+    const result = await this.call('reelsfarm_get_video_job_status', { jobId });
     return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
   }
 
-  delete(id: string) { return this.call('delete_video', { id }); }
-  duplicate(id: string) { return this.call('duplicate_video', { id }); }
+  delete(id: string) { return this.call('reelsfarm_delete_video', { id }); }
+  duplicate(id: string) { return this.call('reelsfarm_duplicate_video', { id }); }
 }

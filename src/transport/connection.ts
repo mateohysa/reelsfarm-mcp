@@ -32,7 +32,7 @@ function isKnownReadOnlyTool(name: string): boolean {
 
 export function isRetrySafeToolCall(name: string, args: JsonObject): boolean {
   return isKnownReadOnlyTool(name)
-    || (isMutationTool(name) && (name === 'confirm_action' || typeof args.idempotencyKey === 'string'));
+    || (isMutationTool(name) && (name === 'reelsfarm_confirm_action' || typeof args.idempotencyKey === 'string'));
 }
 
 function isAmbiguousTransportError(error: unknown): boolean {
@@ -113,7 +113,7 @@ export class ReelsFarmConnection {
     const serverNames = new Set(tools.map((tool) => String(tool.name)));
     const knownNames = new Set<string>(toolNames);
     const extra = [...serverNames].filter((name) => !knownNames.has(name));
-    const missingRequired = ['get_account', 'get_operation'].filter((name) => !serverNames.has(name));
+    const missingRequired = ['reelsfarm_get_account', 'reelsfarm_get_operation'].filter((name) => !serverNames.has(name));
     if (missingRequired.length === 0 && extra.length === 0) {
       this.toolSurfaceValidated = true;
       return;
@@ -196,7 +196,7 @@ export class ReelsFarmConnection {
 
   private prepareArguments(name: string, args: JsonObject): JsonObject {
     if (!isMutationTool(name)) return args;
-    if (name === 'confirm_action') {
+    if (name === 'reelsfarm_confirm_action') {
       return this.options.dryRun ? { ...args, dryRun: true } : args;
     }
     const suppliedKey = typeof args.idempotencyKey === 'string' ? args.idempotencyKey.trim() : '';
@@ -223,10 +223,10 @@ export class ReelsFarmConnection {
   }
 
   private async maybeAutoConfirm<T extends JsonObject>(name: ToolName | string, result: RawToolResult<T>): Promise<RawToolResult<T>> {
-    if (!this.options.autoConfirm || this.options.dryRun || name === 'confirm_action') return result;
+    if (!this.options.autoConfirm || this.options.dryRun || name === 'reelsfarm_confirm_action') return result;
     const confirmationId = result.structuredContent?.confirmationId;
     if (typeof confirmationId !== 'string') return result;
-    return await this.callTool<T>('confirm_action', { confirmationId });
+    return await this.callTool<T>('reelsfarm_confirm_action', { confirmationId });
   }
 
   private async resolveRecoveredOperation<T extends JsonObject>(initial: RawToolResult<T>): Promise<RawToolResult<T>> {
@@ -241,7 +241,7 @@ export class ReelsFarmConnection {
       if (Date.now() - startedAt >= timeoutMs) return result as RawToolResult<T>;
       await sleep(delay);
       delay = Math.min(delay * 2, 2_000);
-      result = await this.callToolOnce('get_operation', { operationId: operation.operationId });
+      result = await this.callToolOnce('reelsfarm_get_operation', { operationId: operation.operationId });
       operation = readOperation(result);
       if (!operation) return result as RawToolResult<T>;
     }

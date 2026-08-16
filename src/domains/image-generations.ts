@@ -42,17 +42,17 @@ export interface ImageGenerationConversation extends JsonObject {
 
 export class ImageGenerationsDomain extends DomainBase {
   async listActive(): Promise<ImageGenerationTurn[]> {
-    const result = await this.call<{ jobs: ImageGenerationTurn[] }>('list_active_image_generation_jobs');
+    const result = await this.call<{ jobs: ImageGenerationTurn[] }>('reelsfarm_list_active_image_generation_jobs');
     return result.jobs;
   }
 
   async getJob(jobId: string): Promise<ImageGenerationTurn> {
-    const result = await this.call<{ job: ImageGenerationTurn }>('get_image_generation_job_status', { jobId });
+    const result = await this.call<{ job: ImageGenerationTurn }>('reelsfarm_get_image_generation_job_status', { jobId });
     return result.job;
   }
 
   getConversation(conversationId: string, options: PageOptions = {}): Promise<ImageGenerationConversation> {
-    return this.call<ImageGenerationConversation>('get_image_generation_conversation', {
+    return this.call<ImageGenerationConversation>('reelsfarm_get_image_generation_conversation', {
       conversationId,
       ...options,
     });
