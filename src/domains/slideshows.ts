@@ -1,17 +1,23 @@
 import type { JsonObject, MaybePrepared, MutationOptions, PageOptions, SlideshowType } from '../types.js';
+import type {
+  SlideshowAspectRatio,
+  SlideshowListResult,
+  SlideshowResult,
+  SlideshowSettings,
+  SlideshowSlideInput,
+} from '../contracts/slideshows.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
-export interface SlideshowSlideData {
-  id?: string;
-  imageUrl: string;
-  avatarId?: string;
-  compositedImageUrl?: string;
-  order?: number;
-  aspectRatio?: string;
-  timeLengthMs?: number;
-  textItems?: unknown[];
+export type SlideshowSlideData = SlideshowSlideInput;
+
+export interface FinalizeSlideshowSlide {
+  id: string;
+  order: number;
+  aspectRatio: SlideshowAspectRatio;
+  textItems: import('../contracts/slideshows.js').SlideshowTextItem[];
+  imageOpacity?: number;
 }
 
 export interface SlideshowVisualContextReference {
@@ -36,15 +42,15 @@ export interface SlideshowRevisionSlide {
 }
 
 export class SlideshowsDomain extends DomainBase {
-  list(options: PageOptions & { status?: 'DRAFT' | 'EXPORTED' } = {}) {
-    return this.call('reelsfarm_list_slideshows', options as JsonObject);
+  list(options: PageOptions & { status?: 'DRAFT' | 'EXPORTED' } = {}): Promise<SlideshowListResult> {
+    return this.call<SlideshowListResult>('reelsfarm_list_slideshows', options as JsonObject);
   }
-  get(id: string) { return this.call('reelsfarm_get_slideshow', { id }); }
-  create(params: { title?: string; prompt?: string; slideshowType?: SlideshowType; settings?: JsonObject; slides: SlideshowSlideData[] } & MutationOptions) {
-    return this.call('reelsfarm_create_slideshow', params as unknown as JsonObject);
+  get(id: string): Promise<SlideshowResult> { return this.call<SlideshowResult>('reelsfarm_get_slideshow', { id }); }
+  create(params: { title?: string; prompt?: string; slideshowType?: SlideshowType; settings?: SlideshowSettings; slides: SlideshowSlideData[] } & MutationOptions): Promise<MaybePrepared<SlideshowResult>> {
+    return this.call('reelsfarm_create_slideshow', params as unknown as JsonObject) as Promise<MaybePrepared<SlideshowResult>>;
   }
-  update(id: string, params: { title?: string; prompt?: string; slideshowType?: SlideshowType; status?: 'DRAFT' | 'EXPORTED'; settings?: JsonObject; slides?: SlideshowSlideData[] }) {
-    return this.call('reelsfarm_update_slideshow', { id, ...params } as unknown as JsonObject);
+  update(id: string, params: { title?: string; prompt?: string; slideshowType?: SlideshowType; status?: 'DRAFT' | 'EXPORTED'; settings?: SlideshowSettings; slides?: SlideshowSlideData[] } & MutationOptions): Promise<MaybePrepared<SlideshowResult>> {
+    return this.call('reelsfarm_update_slideshow', { id, ...params } as unknown as JsonObject) as Promise<MaybePrepared<SlideshowResult>>;
   }
   delete(id: string) { return this.call('reelsfarm_delete_slideshow', { id }); }
   duplicate(id: string, title?: string) { return this.call('reelsfarm_duplicate_slideshow', { id, title }); }
@@ -77,7 +83,7 @@ export class SlideshowsDomain extends DomainBase {
     return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_REVISION', (id) => this.getRevisionJobStatus(id)) : result;
   }
 
-  async finalize(params: { slideshowId: string; slides?: SlideshowSlideData[] } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
+  async finalize(params: { slideshowId: string; slides?: FinalizeSlideshowSlide[] } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_finalize_slideshow', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;

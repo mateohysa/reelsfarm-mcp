@@ -51,8 +51,8 @@ function isAmbiguousTransportError(error: unknown): boolean {
     || message.includes('fetch failed');
 }
 
-function readOperation(result: RawToolResult): McpOperationSnapshot | undefined {
-  const operation = result.structuredContent?.operation;
+function readOperation(result: RawToolResult<object>): McpOperationSnapshot | undefined {
+  const operation = (result.structuredContent as { operation?: unknown } | undefined)?.operation;
   if (!operation || typeof operation !== 'object') return undefined;
   const record = operation as Partial<McpOperationSnapshot>;
   return typeof record.operationId === 'string' && typeof record.status === 'string'
@@ -75,7 +75,7 @@ export class ReelsFarmConnection {
     return result.tools as unknown as JsonObject[];
   }
 
-  async callTool<T extends JsonObject = JsonObject>(name: ToolName | string, args: JsonObject = {}): Promise<RawToolResult<T>> {
+  async callTool<T extends object = JsonObject>(name: ToolName | string, args: JsonObject = {}): Promise<RawToolResult<T>> {
     const requestArgs = this.prepareArguments(name, args);
     try {
       const result = await this.callToolOnce<T>(name, requestArgs);
@@ -113,7 +113,12 @@ export class ReelsFarmConnection {
     const serverNames = new Set(tools.map((tool) => String(tool.name)));
     const knownNames = new Set<string>(toolNames);
     const extra = [...serverNames].filter((name) => !knownNames.has(name));
-    const missingRequired = ['reelsfarm_get_account', 'reelsfarm_get_operation'].filter((name) => !serverNames.has(name));
+    const missingRequired = [
+      'reelsfarm_get_account',
+      'reelsfarm_get_mcp_server_info',
+      'reelsfarm_get_operation',
+      'reelsfarm_preflight_publishing',
+    ].filter((name) => !serverNames.has(name));
     if (missingRequired.length === 0 && extra.length === 0) {
       this.toolSurfaceValidated = true;
       return;
@@ -208,7 +213,7 @@ export class ReelsFarmConnection {
     };
   }
 
-  private async callToolOnce<T extends JsonObject>(name: ToolName | string, args: JsonObject): Promise<RawToolResult<T>> {
+  private async callToolOnce<T extends object>(name: ToolName | string, args: JsonObject): Promise<RawToolResult<T>> {
     const client = await this.getClient();
     const result = await client.callTool(
       { name, arguments: args },
@@ -222,15 +227,15 @@ export class ReelsFarmConnection {
     return raw;
   }
 
-  private async maybeAutoConfirm<T extends JsonObject>(name: ToolName | string, result: RawToolResult<T>): Promise<RawToolResult<T>> {
+  private async maybeAutoConfirm<T extends object>(name: ToolName | string, result: RawToolResult<T>): Promise<RawToolResult<T>> {
     if (!this.options.autoConfirm || this.options.dryRun || name === 'reelsfarm_confirm_action') return result;
-    const confirmationId = result.structuredContent?.confirmationId;
+    const confirmationId = (result.structuredContent as { confirmationId?: unknown } | undefined)?.confirmationId;
     if (typeof confirmationId !== 'string') return result;
     return await this.callTool<T>('reelsfarm_confirm_action', { confirmationId });
   }
 
-  private async resolveRecoveredOperation<T extends JsonObject>(initial: RawToolResult<T>): Promise<RawToolResult<T>> {
-    let result: RawToolResult = initial;
+  private async resolveRecoveredOperation<T extends object>(initial: RawToolResult<T>): Promise<RawToolResult<T>> {
+    let result: RawToolResult<object> = initial;
     let operation = readOperation(result);
     if (!operation) return initial;
 

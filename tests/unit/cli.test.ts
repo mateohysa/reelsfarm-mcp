@@ -196,7 +196,7 @@ describe('cli', () => {
       '--when',
       '2026-07-01T15:00:00Z',
       '--platforms',
-      'tiktok:conn_123',
+      'tiktok:22222222-2222-4222-8222-222222222222',
     ], factory);
 
     expect(seenOptions?.dryRun).toBe(false);
@@ -221,7 +221,7 @@ describe('cli', () => {
       '--when',
       '2026-07-01T15:00:00Z',
       '--platforms',
-      'tiktok:conn_123',
+      'tiktok:22222222-2222-4222-8222-222222222222',
     ], factory);
 
     expect(seenOptions?.dryRun).toBe(false);
@@ -245,11 +245,91 @@ describe('cli', () => {
       '--when',
       '2026-07-01T15:00:00Z',
       '--platforms',
-      'tiktok:conn_123',
+      'tiktok:22222222-2222-4222-8222-222222222222',
     ], factory);
 
     expect(seenOptions?.dryRun).toBe(true);
     expect(seenOptions?.autoConfirm).toBe(true);
+  });
+
+  it('runs the publishing preflight command with typed arguments', async () => {
+    let seen: unknown;
+    const result = await runCli([
+      '--agent',
+      'posts',
+      'preflight',
+      '--content-type',
+      'slideshow',
+      '--content-id',
+      '11111111-1111-4111-8111-111111111111',
+      '--publish-format',
+      'video',
+      '--connection-ids',
+      '22222222-2222-4222-8222-222222222222,33333333-3333-4333-8333-333333333333',
+    ], () => createClient({
+      posts: {
+        preflight: async (params: unknown) => {
+          seen = params;
+          return { media: { type: 'VIDEO' }, targets: [] };
+        },
+      },
+    }));
+
+    expect(seen).toEqual({
+      contentType: 'SLIDESHOW',
+      contentId: '11111111-1111-4111-8111-111111111111',
+      publishFormat: 'VIDEO',
+      connectionIds: [
+        '22222222-2222-4222-8222-222222222222',
+        '33333333-3333-4333-8333-333333333333',
+      ],
+    });
+    expect(result.json).toMatchObject({ ok: true, command: 'posts.preflight' });
+  });
+
+  it('passes complete platform settings through --platforms-json', async () => {
+    let seen: unknown;
+    const result = await runCli([
+      '--agent',
+      'posts',
+      'publish-now',
+      '--content-type',
+      'ugc-video',
+      '--content-id',
+      '11111111-1111-4111-8111-111111111111',
+      '--publish-format',
+      'video',
+      '--platforms-json',
+      JSON.stringify([{
+        platform: 'TIKTOK',
+        connectionId: '22222222-2222-4222-8222-222222222222',
+        captionOverride: 'TikTok caption',
+        tiktokPublishMode: 'DIRECT',
+        tiktokPrivacyLevel: 'SELF_ONLY',
+        tiktokAllowComment: true,
+        tiktokCommercialContentEnabled: true,
+      }]),
+    ], () => createClient({
+      posts: {
+        publishNow: async (params: unknown) => {
+          seen = params;
+          return { published: true };
+        },
+      },
+    }));
+
+    expect(seen).toMatchObject({
+      contentType: 'UGC_VIDEO',
+      publishFormat: 'VIDEO',
+      platforms: [{
+        captionOverride: 'TikTok caption',
+        tiktokPublishMode: 'DIRECT',
+        tiktokPrivacyLevel: 'SELF_ONLY',
+        tiktokAllowComment: true,
+        tiktokCommercialContentEnabled: true,
+      }],
+    });
+    expect(result.json).toMatchObject({ ok: true, data: { published: true } });
   });
 
   it('lets the server connection policy decide direct mutations and preserves dry-run', async () => {

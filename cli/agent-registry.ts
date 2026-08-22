@@ -115,10 +115,10 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     requiredFlags: ['--id'],
     examples: ['reelsfarm slideshows get --id sl_123 --agent'],
   }),
-  fromTool('slideshows.create', 'reelsfarm slideshows create --slides-json <json> [--title <title>]', 'Create a slideshow draft.', 'reelsfarm_create_slideshow', {
+  fromTool('slideshows.create', 'reelsfarm slideshows create --slides-json <json> [--title <title>] [--settings-json <json>]', 'Create a slideshow draft with canonical slide and settings objects.', 'reelsfarm_create_slideshow', {
     requiredFlags: ['--slides-json'],
-    optionalFlags: ['--title'],
-    examples: ['reelsfarm slideshows create --title "Launch" --slides-json \'[]\' --agent'],
+    optionalFlags: ['--title', '--prompt', '--type', '--settings-json'],
+    examples: ['reelsfarm slideshows create --title "Launch" --slides-json \'[{"imageUrl":"/api/assets/user-generated?key=user/slide.webp","order":0,"imageOpacity":80}]\' --settings-json \'{"duration":2500,"transitionStyle":"fade"}\' --agent'],
   }),
   fromTool('slideshows.generate-text', 'reelsfarm slideshows generate-text --prompt <prompt> [--type <type>] [--slide-count <n>] [--max] [--visual-context-json <json>]', 'Prepare or run slideshow text generation.', 'reelsfarm_prepare_generate_slideshow_text', {
     requiredFlags: ['--prompt'],
@@ -230,15 +230,24 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     optionalFlags: ['--platform', '--limit'],
     examples: ['reelsfarm posts optimal-times --platform tiktok --agent'],
   }),
-  fromTool('posts.schedule', 'reelsfarm posts schedule --content-type <type> --content-id <id> --when <date> --platforms <items>', 'Prepare or run scheduled publishing.', 'reelsfarm_prepare_schedule_post', {
-    requiredFlags: ['--content-type', '--content-id', '--when', '--platforms'],
-    optionalFlags: ['--caption', '--yes', '--dry-run'],
-    examples: ['reelsfarm posts schedule --content-type SLIDESHOW --content-id sl_123 --when 2026-07-01T15:00:00Z --platforms tiktok:conn_123 --agent'],
+  fromTool('posts.preflight', 'reelsfarm posts preflight --content-type <type> --content-id <id> --publish-format <format> --connection-ids <ids>', 'Inspect media and account readiness without changing data.', 'reelsfarm_preflight_publishing', {
+    requiredFlags: ['--content-type', '--content-id', '--publish-format', '--connection-ids'],
+    examples: ['reelsfarm posts preflight --content-type SLIDESHOW --content-id 11111111-1111-4111-8111-111111111111 --publish-format VIDEO --connection-ids 22222222-2222-4222-8222-222222222222 --agent'],
   }),
-  fromTool('posts.publish-now', 'reelsfarm posts publish-now --content-type <type> --content-id <id> --platforms <items>', 'Prepare or run immediate publishing.', 'reelsfarm_prepare_publish_now', {
-    requiredFlags: ['--content-type', '--content-id', '--platforms'],
-    optionalFlags: ['--caption', '--yes', '--dry-run'],
-    examples: ['reelsfarm posts publish-now --content-type UGC_VIDEO --content-id vid_123 --platforms tiktok:conn_123 --agent'],
+  fromTool('posts.schedule', 'reelsfarm posts schedule --content-type <type> --content-id <id> --when <date> (--platforms <items> | --platforms-json <json>)', 'Prepare or run scheduled publishing.', 'reelsfarm_prepare_schedule_post', {
+    requiredFlags: ['--content-type', '--content-id', '--when'],
+    optionalFlags: ['--platforms', '--platforms-json', '--publish-format', '--caption', '--yes', '--dry-run'],
+    examples: ['reelsfarm posts schedule --content-type SLIDESHOW --content-id 11111111-1111-4111-8111-111111111111 --when 2026-09-01T15:00:00Z --platforms tiktok:22222222-2222-4222-8222-222222222222 --publish-format VIDEO --agent'],
+  }),
+  fromTool('posts.publish-now', 'reelsfarm posts publish-now --content-type <type> --content-id <id> (--platforms <items> | --platforms-json <json>)', 'Prepare or run immediate publishing.', 'reelsfarm_prepare_publish_now', {
+    requiredFlags: ['--content-type', '--content-id'],
+    optionalFlags: ['--platforms', '--platforms-json', '--publish-format', '--caption', '--yes', '--dry-run'],
+    examples: ['reelsfarm posts publish-now --content-type UGC_VIDEO --content-id 11111111-1111-4111-8111-111111111111 --platforms tiktok:22222222-2222-4222-8222-222222222222 --agent'],
+  }),
+  fromTool('posts.batch-publish', 'reelsfarm posts batch-publish --content-type <type> --content-id <id> (--platforms <items> | --platforms-json <json>)', 'Prepare or run immediate publishing to multiple accounts.', 'reelsfarm_prepare_batch_publish', {
+    requiredFlags: ['--content-type', '--content-id'],
+    optionalFlags: ['--platforms', '--platforms-json', '--publish-format', '--caption', '--yes', '--dry-run'],
+    examples: ['reelsfarm posts batch-publish --content-type AVATAR --content-id 11111111-1111-4111-8111-111111111111 --platforms instagram:22222222-2222-4222-8222-222222222222,facebook:33333333-3333-4333-8333-333333333333 --agent'],
   }),
   fromTool('posts.update', 'reelsfarm posts update --id <id> [--when <date>] [--caption <caption>]', 'Prepare or run scheduled post updates.', 'reelsfarm_prepare_update_scheduled_post', {
     requiredFlags: ['--id'],

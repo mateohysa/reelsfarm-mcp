@@ -31,7 +31,7 @@ export class ReelsFarmClient {
   private readonly context: DomainContext;
   readonly raw: {
     listTools: () => Promise<JsonObject[]>;
-    callTool: <T extends JsonObject = JsonObject>(name: ToolName | string, args?: JsonObject) => Promise<RawToolResult<T>>;
+    callTool: <T extends object = JsonObject>(name: ToolName | string, args?: JsonObject) => Promise<RawToolResult<T>>;
   };
 
   readonly account: AccountDomain;

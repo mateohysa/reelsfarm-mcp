@@ -3,7 +3,7 @@ import { toolManifest, toolNames } from '../../src/generated/tool-manifest.js';
 
 describe('tool manifest', () => {
   it('tracks the current ReelsFarm MCP tool catalog', () => {
-    expect(toolNames).toHaveLength(106);
+    expect(toolNames).toHaveLength(107);
     expect(toolNames).toContain('reelsfarm_get_operation');
     expect(toolNames).toContain('reelsfarm_get_generated_hook_status');
     expect(toolNames).toContain('reelsfarm_get_image_generation_conversation');
@@ -17,6 +17,7 @@ describe('tool manifest', () => {
     expect(toolNames).toContain('reelsfarm_list_community_images');
     expect(toolNames).toContain('reelsfarm_list_avatar_templates');
     expect(toolNames).toContain('reelsfarm_delete_gallery_image');
+    expect(toolNames).toContain('reelsfarm_preflight_publishing');
     expect(toolNames).not.toContain('create_webhook');
     expect(toolNames).not.toContain('prepare_delete_scheduled_post');
     expect(toolNames).not.toContain('create_api_key');
@@ -27,6 +28,7 @@ describe('tool manifest', () => {
 
     expect(byName.get('reelsfarm_search_assets')?.readOnly).toBe(true);
     expect(byName.get('reelsfarm_validate_caption')?.readOnly).toBe(true);
+    expect(byName.get('reelsfarm_preflight_publishing')?.readOnly).toBe(true);
     expect(byName.get('reelsfarm_import_media_from_url')?.readOnly).toBe(false);
   });
 });

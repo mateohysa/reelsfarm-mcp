@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { toolNames } from '../src/generated/tool-manifest.js';
+import { MCP_CONTRACT_VERSION, SDK_VERSION } from '../src/constants.js';
 
 const dashboardOnlyTools = new Set([
   'list_api_keys',
@@ -37,6 +38,7 @@ for (const required of [
   'reelsfarm_list_avatar_templates',
   'reelsfarm_prepare_save_character',
   'reelsfarm_delete_gallery_image',
+  'reelsfarm_preflight_publishing',
 ]) {
   if (!unique.has(required as never)) {
     throw new Error('Missing required corrected tool name: ' + required);
@@ -47,6 +49,14 @@ const appRoot = resolve(process.env.REELSFARM_APP_ROOT || '../ugc-reels');
 const serverSourcePath = resolve(appRoot, 'src/mcp-server.ts');
 if (existsSync(serverSourcePath)) {
   const source = readFileSync(serverSourcePath, 'utf8');
+  const serverVersion = source.match(/export const MCP_SERVER_VERSION = '([^']+)'/)?.[1];
+  const contractVersion = source.match(/export const MCP_CONTRACT_VERSION = '([^']+)'/)?.[1];
+  if (serverVersion !== SDK_VERSION) {
+    throw new Error(`MCP/SDK release version drift. Server: ${serverVersion || 'unknown'}. SDK: ${SDK_VERSION}.`);
+  }
+  if (contractVersion !== MCP_CONTRACT_VERSION) {
+    throw new Error(`MCP/SDK contract version drift. Server: ${contractVersion || 'unknown'}. SDK: ${MCP_CONTRACT_VERSION}.`);
+  }
   const toolsBlock = source.match(/const tools: McpTool\[\] = \[([\s\S]*?)\n\];\n\nconst unclassifiedTools/)?.[1];
   if (!toolsBlock) throw new Error('Could not read the app MCP tool catalog');
   const serverTools = [...toolsBlock.matchAll(/^ {4}name:\s*'([a-z0-9_]+)'/gm)]

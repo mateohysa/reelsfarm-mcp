@@ -18,11 +18,15 @@ import {
   ReelsFarmValidationError,
   type JsonObject,
   type GalleryFeedKind,
+  type CreateAutomationParams,
+  canonicalPlatformTargetsSchema,
   type PlatformTarget,
   type PreparedAction,
+  type PublishContentType,
+  type PublishFormat,
   type ReelsFarmClientOptions,
 } from '../src/index.js';
-import { DEFAULT_MCP_SERVER_URL, DEFAULT_PROFILE, SDK_VERSION } from '../src/constants.js';
+import { DEFAULT_MCP_SERVER_URL, DEFAULT_PROFILE, MCP_CONTRACT_VERSION, SDK_VERSION } from '../src/constants.js';
 import { resolveOptions } from '../src/transport/connection.js';
 import { extractStructuredContent } from '../src/utils/result.js';
 import { clearProfile, createProfileTokenStore, loadProfile, saveProfile } from '../src/auth/config-store.js';
@@ -261,15 +265,39 @@ function guardDirectDestructive(opts: GlobalOptions, commandName: string): JsonO
 }
 
 function parsePlatforms(value: string): PlatformTarget[] {
-  return value.split(',').filter(Boolean).map((item) => {
+  const targets = value.split(',').filter(Boolean).map((item) => {
     const [platformRaw, connectionId] = item.split(':');
     if (!platformRaw || !connectionId) throw new Error('Platforms must be platform:connectionId pairs');
-    return { platform: platformRaw.toUpperCase() as PlatformTarget['platform'], connectionId };
+    return { platform: platformRaw.toUpperCase(), connectionId };
   });
+  return canonicalPlatformTargetsSchema.parse(targets) as PlatformTarget[];
 }
 
-function parseContentType(value: string): string {
-  return value.toUpperCase().replace(/-/g, '_');
+function parsePlatformTargets(platforms?: string, platformsJson?: string): PlatformTarget[] {
+  if (platforms && platformsJson) {
+    throw new Error('Use either --platforms or --platforms-json, not both');
+  }
+  if (platformsJson) {
+    return canonicalPlatformTargetsSchema.parse(JSON.parse(platformsJson)) as PlatformTarget[];
+  }
+  if (platforms) return parsePlatforms(platforms);
+  throw new Error('Provide --platforms or --platforms-json');
+}
+
+function parseContentType(value: string): PublishContentType {
+  const normalized = value.toUpperCase().replace(/-/g, '_');
+  if (normalized !== 'AVATAR' && normalized !== 'UGC_VIDEO' && normalized !== 'SLIDESHOW') {
+    throw new Error('Content type must be AVATAR, UGC_VIDEO, or SLIDESHOW');
+  }
+  return normalized;
+}
+
+function parsePublishFormat(value: string): PublishFormat {
+  const normalized = value.toUpperCase();
+  if (normalized !== 'VIDEO' && normalized !== 'PHOTO' && normalized !== 'CAROUSEL') {
+    throw new Error('Publish format must be VIDEO, PHOTO, or CAROUSEL');
+  }
+  return normalized;
 }
 
 async function maybeWait(value: unknown, opts: GlobalOptions): Promise<unknown> {
@@ -455,8 +483,20 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const slideshows = program.command('slideshows');
   slideshows.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.slideshows.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   slideshows.command('get').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.slideshows.get(opts.id), buildOptions));
-  slideshows.command('create').requiredOption('--slides-json <json>').option('--title <title>').action((opts, command) => run(command, async (client) => {
-    return client.slideshows.create({ title: opts.title, slides: JSON.parse(opts.slidesJson) });
+  slideshows.command('create')
+    .requiredOption('--slides-json <json>')
+    .option('--title <title>')
+    .option('--prompt <prompt>')
+    .option('--type <type>')
+    .option('--settings-json <json>')
+    .action((opts, command) => run(command, async (client) => {
+    return client.slideshows.create({
+      title: opts.title,
+      prompt: opts.prompt,
+      slideshowType: opts.type,
+      settings: opts.settingsJson ? JSON.parse(opts.settingsJson) : undefined,
+      slides: JSON.parse(opts.slidesJson),
+    });
   }, buildOptions));
   slideshows.command('generate-text')
     .requiredOption('--prompt <prompt>')
@@ -589,8 +629,61 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   posts.command('list').option('--status <status>').option('--limit <n>').action((opts, command) => run(command, (client) => client.posts.list({ status: opts.status, limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   posts.command('status').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.posts.getStatus(opts.id), buildOptions));
   posts.command('optimal-times').option('--platform <platform>').option('--limit <n>').action((opts, command) => run(command, (client) => client.posts.getOptimalTimes({ platform: opts.platform, limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
-  posts.command('schedule').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--when <date>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.schedule({ contentType: parseContentType(opts.contentType), contentId: opts.contentId, scheduledFor: opts.when, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
-  posts.command('publish-now').requiredOption('--content-type <type>').requiredOption('--content-id <id>').requiredOption('--platforms <items>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.publishNow({ contentType: parseContentType(opts.contentType), contentId: opts.contentId, platforms: parsePlatforms(opts.platforms), caption: opts.caption }), buildOptions));
+  posts.command('preflight')
+    .requiredOption('--content-type <type>')
+    .requiredOption('--content-id <id>')
+    .requiredOption('--publish-format <format>')
+    .requiredOption('--connection-ids <ids>')
+    .action((opts, command) => run(command, (client) => client.posts.preflight({
+      contentType: parseContentType(opts.contentType),
+      contentId: opts.contentId,
+      publishFormat: parsePublishFormat(opts.publishFormat),
+      connectionIds: String(opts.connectionIds).split(',').map((id) => id.trim()).filter(Boolean),
+    }), buildOptions));
+  posts.command('schedule')
+    .requiredOption('--content-type <type>')
+    .requiredOption('--content-id <id>')
+    .requiredOption('--when <date>')
+    .option('--platforms <items>')
+    .option('--platforms-json <json>')
+    .option('--publish-format <format>')
+    .option('--caption <caption>')
+    .action((opts, command) => run(command, (client) => client.posts.schedule({
+      contentType: parseContentType(opts.contentType),
+      contentId: opts.contentId,
+      scheduledFor: opts.when,
+      platforms: parsePlatformTargets(opts.platforms, opts.platformsJson),
+      publishFormat: opts.publishFormat ? parsePublishFormat(opts.publishFormat) : undefined,
+      caption: opts.caption,
+    }), buildOptions));
+  posts.command('publish-now')
+    .requiredOption('--content-type <type>')
+    .requiredOption('--content-id <id>')
+    .option('--platforms <items>')
+    .option('--platforms-json <json>')
+    .option('--publish-format <format>')
+    .option('--caption <caption>')
+    .action((opts, command) => run(command, (client) => client.posts.publishNow({
+      contentType: parseContentType(opts.contentType),
+      contentId: opts.contentId,
+      platforms: parsePlatformTargets(opts.platforms, opts.platformsJson),
+      publishFormat: opts.publishFormat ? parsePublishFormat(opts.publishFormat) : undefined,
+      caption: opts.caption,
+    }), buildOptions));
+  posts.command('batch-publish')
+    .requiredOption('--content-type <type>')
+    .requiredOption('--content-id <id>')
+    .option('--platforms <items>')
+    .option('--platforms-json <json>')
+    .option('--publish-format <format>')
+    .option('--caption <caption>')
+    .action((opts, command) => run(command, (client) => client.posts.batchPublish({
+      contentType: parseContentType(opts.contentType),
+      contentId: opts.contentId,
+      platforms: parsePlatformTargets(opts.platforms, opts.platformsJson),
+      publishFormat: opts.publishFormat ? parsePublishFormat(opts.publishFormat) : undefined,
+      caption: opts.caption,
+    }), buildOptions));
   posts.command('update').requiredOption('--id <id>').option('--when <date>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.update(opts.id, { scheduledFor: opts.when, caption: opts.caption }), buildOptions));
   posts.command('cancel').requiredOption('--id <id>').action((opts, command) => run(command, (client) => {
     return client.posts.cancel(opts.id);
@@ -608,7 +701,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
   const automations = program.command('automations');
   automations.command('list').action((_, command) => run(command, (client) => client.automations.list(), buildOptions));
-  automations.command('create').requiredOption('--json-definition <json>').action((opts, command) => run(command, (client) => client.automations.create(JSON.parse(opts.jsonDefinition) as JsonObject), buildOptions));
+  automations.command('create').requiredOption('--json-definition <json>').action((opts, command) => run(command, (client) => client.automations.create(JSON.parse(opts.jsonDefinition) as CreateAutomationParams), buildOptions));
   automations.command('update').requiredOption('--id <id>').requiredOption('--json-definition <json>').action((opts, command) => run(command, (client) => client.automations.update(opts.id, JSON.parse(opts.jsonDefinition) as JsonObject), buildOptions));
 
   const events = program.command('events');
@@ -646,7 +739,23 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     if (hasCredential) {
       const client = makeClient(command, buildOptions);
       try {
-        accountStatus = { state: 'authenticated', account: await client.account.get() };
+        const [account, serverInfo] = await Promise.all([
+          client.account.get(),
+          client.account.getServerInfo(),
+        ]);
+        const serverContractVersion = typeof serverInfo.toolContractVersion === 'string'
+          ? serverInfo.toolContractVersion
+          : null;
+        accountStatus = {
+          state: 'authenticated',
+          account,
+          serverInfo,
+          contract: {
+            expected: MCP_CONTRACT_VERSION,
+            actual: serverContractVersion,
+            matches: serverContractVersion === MCP_CONTRACT_VERSION,
+          },
+        };
       } catch (error) {
         accountStatus = { state: 'error', error: errorEnvelope(error).error };
       } finally {
@@ -656,6 +765,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
     return {
       version: SDK_VERSION,
+      contractVersion: MCP_CONTRACT_VERSION,
       endpoint: resolved.serverUrl,
       profile: resolved.profile,
       agentMode: isAgentMode(globals),

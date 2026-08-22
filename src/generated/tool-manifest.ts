@@ -93,6 +93,7 @@ export const toolNames = [
   'reelsfarm_create_slideshow',
   'reelsfarm_list_social_accounts',
   'reelsfarm_list_connected_accounts',
+  'reelsfarm_preflight_publishing',
   'reelsfarm_list_scheduled_posts',
   'reelsfarm_list_automations',
   'reelsfarm_prepare_create_automation',
@@ -127,6 +128,7 @@ const destructiveTools = new Set<string>([
 ]);
 
 const readOnlyTools = new Set<string>([
+  'reelsfarm_preflight_publishing',
   'reelsfarm_check_hook_import_access',
   'reelsfarm_suggest_product_context_from_url',
   'reelsfarm_get_generation_pricing',

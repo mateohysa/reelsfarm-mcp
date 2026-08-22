@@ -1,14 +1,21 @@
-import type { JsonObject, MaybePrepared, MutationOptions, PlatformTarget } from '../types.js';
+import type { JsonObject, MaybePrepared, MutationOptions } from '../types.js';
+import type {
+  PlatformTarget,
+  PublishContentType,
+  PublishFormat,
+  PublishingPreflightParams,
+  PublishingPreflightResult,
+} from '../contracts/publishing.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
 
 export interface PublishParams extends MutationOptions {
-  contentType: string;
+  contentType: PublishContentType;
   contentId: string;
   timezone?: string;
   caption?: string;
   platforms: PlatformTarget[];
-  publishFormat?: string;
+  publishFormat?: PublishFormat;
 }
 
 export interface SchedulePostParams extends PublishParams {
@@ -25,6 +32,9 @@ export class PostsDomain extends DomainBase {
   }
   getStatus(id: string) { return this.call('reelsfarm_get_publish_status', { id }); }
   getOptimalTimes(options: { platform?: string; limit?: number } = {}) { return this.call('reelsfarm_get_optimal_posting_times', options); }
+  preflight(params: PublishingPreflightParams): Promise<PublishingPreflightResult> {
+    return this.call<PublishingPreflightResult>('reelsfarm_preflight_publishing', params as unknown as JsonObject);
+  }
 
   schedule(params: SchedulePostParams): Promise<MaybePrepared<JsonObject>> {
     return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_schedule_post', { ...params, scheduledFor: serializeDate(params.scheduledFor) } as unknown as JsonObject);

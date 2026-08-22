@@ -2,13 +2,15 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 0.6 migration
+## Version 3.0
 
-ReelsFarm MCP server 2.0 prefixes every raw tool identifier with `reelsfarm_`.
-For example, use `reelsfarm_list_avatars` instead of `list_avatars`. SDK 0.6
-keeps the higher-level methods unchanged, so calls such as `rf.avatars.list()`
-do not need changes. Code that uses `rf.raw.callTool(...)` must add the prefix.
-The server does not expose aliases for the previous raw names.
+SDK `3.0.0` matches ReelsFarm MCP server `3.0.0` and contract
+`2026-08-22.1`. It tracks all 107 public tools. It adds publishing preflight,
+the complete per-platform publishing contract, and canonical slideshow and
+automation types.
+
+Publishing aliases from MCP 2.x are removed. Read [MIGRATION.md](./MIGRATION.md)
+before you update a publishing integration.
 
     npm install @reelsfarm/mcp-client
 
@@ -56,7 +58,7 @@ duration, and optional spoken script settings. Slideshow generation accepts
 Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
 language instruction to the complete current slide text state.
 
-SDK 0.6.0 also maps the web content library workflows directly:
+SDK 3.0.0 also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -105,6 +107,7 @@ method because that form cannot validate state by itself.
     reelsfarm media-collections gallery --kinds COLLECTION,AVATAR
     reelsfarm ai-clones voices --search warm
     reelsfarm hooks import-capabilities
+    reelsfarm posts preflight --content-type SLIDESHOW --content-id 11111111-1111-4111-8111-111111111111 --publish-format VIDEO --connection-ids 22222222-2222-4222-8222-222222222222 --agent
     reelsfarm posts list --json
 
 Credentials are resolved in this order: constructor options, environment
@@ -118,7 +121,7 @@ ReelsFarm is safe for shell-capable agents when invoked in agent mode:
     reelsfarm agent status
     reelsfarm agent commands
     reelsfarm social connected --agent
-    reelsfarm posts schedule --content-type SLIDESHOW --content-id sl_123 --when 2026-07-01T15:00:00Z --platforms tiktok:conn_123 --agent
+    reelsfarm posts schedule --content-type SLIDESHOW --content-id 11111111-1111-4111-8111-111111111111 --when 2026-09-01T15:00:00Z --platforms tiktok:22222222-2222-4222-8222-222222222222 --publish-format VIDEO --agent
     reelsfarm confirm conf_123 --agent
 
 Use `--agent` or set `REELSFARM_AGENT_MODE=1` to receive strict JSON envelopes
@@ -140,7 +143,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 0.6.0 generates one UUID for every logical mutation and reuses it if the
+SDK 3.0.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.
@@ -175,7 +178,46 @@ endpoint. The CLI also accepts `--allow-insecure-http`.
 
 The checked-in tool manifest reflects the current discoverable ReelsFarm MCP
 surface. Dashboard-only credential, webhook, and permanent-delete tools stay
-out of the public SDK catalog. The manifest check compares the 106 public SDK
-tools with the local app MCP catalog when both repositories are adjacent. Use
+out of the public SDK catalog. The manifest check compares the 107 public SDK
+tools, release version, and contract version with the local app MCP catalog
+when both repositories are adjacent. Use
 npm run generate:tools against an authenticated MCP endpoint when the server
 adds or removes tools.
+
+## Publishing preflight and platform settings
+
+Run preflight before a schedule or publish call. The server repeats preflight
+before it creates or executes the action.
+
+    const readiness = await rf.posts.preflight({
+      contentType: 'SLIDESHOW',
+      contentId: slideshowId,
+      publishFormat: 'VIDEO',
+      connectionIds: [tiktokConnectionId, youtubeConnectionId],
+    });
+
+    const scheduled = await rf.posts.schedule({
+      contentType: 'SLIDESHOW',
+      contentId: slideshowId,
+      publishFormat: 'VIDEO',
+      scheduledFor: '2026-09-01T15:00:00.000Z',
+      platforms: [{
+        platform: 'TIKTOK',
+        connectionId: tiktokConnectionId,
+        captionOverride: 'TikTok caption',
+        tiktokPublishMode: 'DIRECT',
+        tiktokPrivacyLevel: 'PUBLIC_TO_EVERYONE',
+        tiktokAllowComment: true,
+        tiktokCommercialContentEnabled: false,
+      }, {
+        platform: 'YOUTUBE',
+        connectionId: youtubeConnectionId,
+        youtubeTitle: 'Launch Short',
+        youtubePrivacyStatus: 'UNLISTED',
+        youtubeMadeForKids: false,
+        youtubeContainsSyntheticMedia: true,
+      }],
+    });
+
+The CLI accepts simple `platform:connectionId` pairs. Use `--platforms-json`
+when you need captions or platform settings.

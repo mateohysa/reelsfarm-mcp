@@ -115,7 +115,7 @@ export interface McpOperationEnvelope extends JsonObject {
 
 export type MaybePrepared<T> = T | PreparedAction | DryRunResult | McpOperationEnvelope;
 
-export interface RawToolResult<T extends JsonObject = JsonObject> {
+export interface RawToolResult<T extends object = JsonObject> {
   content: Array<{ type: string; text?: string; [key: string]: unknown }>;
   structuredContent?: T;
   isError?: boolean;
@@ -137,24 +137,10 @@ export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
 export type HookGenerationModel = 'veo-3.1-fast' | 'veo-3.1' | 'seedance-2-fast' | 'seedance-2' | 'seedance-2.5';
 export type HookGenerationPreset = 'subtle_pan' | 'surprised_reaction' | 'nod_smile';
 
-export interface PlatformTarget {
-  platform: Platform;
-  connectionId?: string;
-  socialConnectionId?: string;
-  externalSocialAccountId?: string;
-  tiktokPostMode?: 'PUBLIC' | 'PRIVATE' | 'DRAFT';
-  tiktokAutoAddMusic?: boolean;
-  tiktokIsAigc?: boolean;
-  tiktokAllowDuet?: boolean;
-  tiktokAllowStitch?: boolean;
-  youtubePrivacyStatus?: 'PRIVATE' | 'PUBLIC' | 'UNLISTED';
-  instagramVisibility?: 'PUBLIC' | 'PRIVATE' | 'DRAFT';
-  instagramTestReel?: boolean;
-  facebookVisibility?: 'PUBLIC' | 'PRIVATE' | 'DRAFT';
-}
-
 export interface WaitOptions {
   pollIntervalMs?: number;
   timeoutMs?: number;
   signal?: AbortSignal;
 }
+
+export type { PlatformTarget } from './contracts/publishing.js';

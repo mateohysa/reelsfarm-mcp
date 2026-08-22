@@ -13,7 +13,7 @@ function isPreparedAction(value: unknown): value is PreparedAction {
   return Boolean(value && typeof value === 'object' && typeof (value as PreparedAction).confirmationId === 'string');
 }
 
-export async function prepareAndConfirm<T extends JsonObject>(
+export async function prepareAndConfirm<T extends object>(
   context: PrepareConfirmContext,
   prepareTool: ToolName,
   args: JsonObject,

@@ -4,6 +4,8 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
+This skill targets SDK and server `3.0.0` with MCP contract `2026-08-22.1`.
+
 ## Install and Auth
 
 ```bash
@@ -153,11 +155,18 @@ Schedule existing content:
 
 ```bash
 reelsfarm validate caption "Launch day" --platforms tiktok,instagram --agent
+reelsfarm posts preflight \
+  --content-type slideshow \
+  --content-id 11111111-1111-4111-8111-111111111111 \
+  --publish-format video \
+  --connection-ids 22222222-2222-4222-8222-222222222222 \
+  --agent
 reelsfarm posts schedule \
   --content-type slideshow \
-  --content-id sl_123 \
-  --when 2026-07-01T15:00:00Z \
-  --platforms tiktok:conn_123 \
+  --content-id 11111111-1111-4111-8111-111111111111 \
+  --when 2026-09-01T15:00:00Z \
+  --publish-format video \
+  --platforms tiktok:22222222-2222-4222-8222-222222222222 \
   --caption "Launch day" \
   --agent
 reelsfarm confirm <confirmationId> --agent
@@ -167,12 +176,16 @@ Publish now after explicit approval:
 
 ```bash
 reelsfarm posts publish-now \
-  --content-type video \
-  --content-id vid_123 \
-  --platforms tiktok:conn_123 \
+  --content-type ugc-video \
+  --content-id 11111111-1111-4111-8111-111111111111 \
+  --platforms-json '[{"platform":"TIKTOK","connectionId":"22222222-2222-4222-8222-222222222222","captionOverride":"New drop","tiktokPublishMode":"DIRECT","tiktokPrivacyLevel":"PUBLIC_TO_EVERYONE","tiktokAllowComment":true}]' \
   --caption "New drop" \
   --agent --yes
 ```
+
+Use only `connectionId`, `tiktokPublishMode`, and `tiktokPrivacyLevel` in MCP
+3.0 publishing targets. Do not use `socialConnectionId`,
+`externalSocialAccountId`, or `tiktokPostMode`.
 
 Inspect scheduled publishing:
 

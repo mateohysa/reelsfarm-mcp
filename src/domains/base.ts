@@ -6,7 +6,7 @@ import { extractStructuredContent } from '../utils/result.js';
 export abstract class DomainBase {
   constructor(protected readonly context: DomainContext) {}
 
-  protected async call<T extends JsonObject = JsonObject>(name: ToolName | string, args: JsonObject = {}): Promise<T> {
+  protected async call<T extends object = JsonObject>(name: ToolName | string, args: JsonObject = {}): Promise<T> {
     return extractStructuredContent<T>(await this.context.callTool(name, args));
   }
 }
