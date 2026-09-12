@@ -2,12 +2,12 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 3.0
+## Version 3.1
 
-SDK `3.0.0` matches ReelsFarm MCP server `3.0.0` and contract
-`2026-08-22.1`. It tracks all 107 public tools. It adds publishing preflight,
-the complete per-platform publishing contract, and canonical slideshow and
-automation types.
+SDK `3.1.0` matches ReelsFarm MCP server `3.1.0` and contract
+`2026-09-12.1`. It tracks all 107 public tools. It adds GPT Image 2.5 and typed
+avatar quality controls while retaining the complete MCP 3.0 publishing,
+slideshow, and automation contracts.
 
 Publishing aliases from MCP 2.x are removed. Read [MIGRATION.md](./MIGRATION.md)
 before you update a publishing integration.
@@ -25,7 +25,9 @@ before you update a publishing integration.
 
     const avatar = await rf.avatars.generate({
       prompt: 'Woman in her 30s, casual outfit, smartphone selfie style',
-      model: 'nano-banana-pro',
+      model: 'gpt-image-2.5-sunburst',
+      aspectRatio: '9:16',
+      quality: 'high',
     });
 
     if ('confirmationId' in avatar) {
@@ -38,6 +40,10 @@ Review mode returns a `PreparedAction` by default. Trusted applications can set
 `autoConfirm: true` to confirm Review actions automatically. Creator and
 Autopilot connections execute the capabilities enabled by their server-owned
 connection policy without an extra SDK approval step.
+
+Use `gpt-image-2.5-sunburst` as the public GPT Image 2.5 model key. GPT Image 2
+and GPT Image 2.5 accept `low`, `medium`, or `high` quality. Seedream 5.0 Pro
+accepts `basic` or `high`. Omit `quality` for Nano Banana models.
 
 ## Conversational generation
 
@@ -58,7 +64,7 @@ duration, and optional spoken script settings. Slideshow generation accepts
 Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
 language instruction to the complete current slide text state.
 
-SDK 3.0.0 also maps the web content library workflows directly:
+SDK 3.1.0 also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -103,7 +109,7 @@ method because that form cannot validate state by itself.
     reelsfarm login --api-key rfmcp_xxx
     reelsfarm whoami
     reelsfarm avatars list
-    reelsfarm avatars generate --prompt "Creator selfie style" --wait
+    reelsfarm avatars generate --prompt "Creator selfie style" --model gpt-image-2.5-sunburst --aspect-ratio 9:16 --quality high --wait
     reelsfarm media-collections gallery --kinds COLLECTION,AVATAR
     reelsfarm ai-clones voices --search warm
     reelsfarm hooks import-capabilities
@@ -143,7 +149,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 3.0.0 generates one UUID for every logical mutation and reuses it if the
+SDK 3.1.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.

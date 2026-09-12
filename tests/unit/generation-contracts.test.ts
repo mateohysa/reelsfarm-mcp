@@ -41,6 +41,27 @@ describe('generation conversation contracts', () => {
     });
   });
 
+  it('passes GPT Image 2.5 quality controls through avatar generation', async () => {
+    const { context, calls } = createContext();
+    await new AvatarsDomain(context).generate({
+      prompt: 'Creator portrait with room for a headline',
+      model: 'gpt-image-2.5-sunburst',
+      aspectRatio: '4:5',
+      quality: 'medium',
+      styleMode: 'linkedin',
+    });
+
+    expect(calls[0]).toMatchObject({
+      name: 'reelsfarm_prepare_generate_avatar',
+      args: {
+        model: 'gpt-image-2.5-sunburst',
+        aspectRatio: '4:5',
+        quality: 'medium',
+        styleMode: 'linkedin',
+      },
+    });
+  });
+
   it('passes conversational hook instructions and Seedance 2.5', async () => {
     const { context, calls } = createContext();
     await new HooksDomain(context).generate({

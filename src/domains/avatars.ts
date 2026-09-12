@@ -1,4 +1,4 @@
-import type { AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
+import type { AvatarGenerationQuality, AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { DomainBase } from './base.js';
@@ -10,6 +10,7 @@ export interface AvatarGenerationParams extends MutationOptions {
   referenceUrl?: string;
   model?: AvatarModel;
   aspectRatio?: ImageAspectRatio;
+  quality?: AvatarGenerationQuality;
   styleMode?: AvatarStyleMode;
   conversationId?: string;
   parentGenerationId?: string;

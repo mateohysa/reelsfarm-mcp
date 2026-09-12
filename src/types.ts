@@ -131,7 +131,13 @@ export type AssetCategory = 'characters' | 'products' | 'hooks' | 'demos' | 'sou
 export type Platform = 'TIKTOK' | 'INSTAGRAM' | 'YOUTUBE' | 'FACEBOOK';
 export type PlatformSlug = 'tiktok' | 'instagram' | 'youtube' | 'facebook';
 export type SlideshowType = 'EDUCATIONAL' | 'PROMOTIONAL' | 'STORYTELLING' | 'LIFESTYLE' | 'REVIEW';
-export type AvatarModel = 'nano-banana-pro' | 'nano-banana-2-pro' | 'gpt-image-2' | 'seedream-5-pro';
+export type AvatarModel =
+  | 'nano-banana-pro'
+  | 'nano-banana-2-pro'
+  | 'gpt-image-2'
+  | 'gpt-image-2.5-sunburst'
+  | 'seedream-5-pro';
+export type AvatarGenerationQuality = 'low' | 'medium' | 'high' | 'basic';
 export type AvatarStyleMode = 'default' | 'pinterest' | 'linkedin';
 export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
 export type HookGenerationModel = 'veo-3.1-fast' | 'veo-3.1' | 'seedance-2-fast' | 'seedance-2' | 'seedance-2.5';

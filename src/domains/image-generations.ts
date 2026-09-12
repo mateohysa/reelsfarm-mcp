@@ -1,4 +1,4 @@
-import type { JsonObject, PageOptions } from '../types.js';
+import type { AvatarGenerationQuality, AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, PageOptions } from '../types.js';
 import { DomainBase } from './base.js';
 
 export type ImageGenerationKind = 'AVATAR' | 'PRODUCT_PLACEMENT';
@@ -16,9 +16,10 @@ export interface ImageGenerationTurn extends JsonObject {
   input: {
     sourceImageUrl?: string;
     productImageUrl?: string;
-    model?: string;
-    aspectRatio?: string;
-    styleMode?: string;
+    model?: AvatarModel;
+    aspectRatio?: ImageAspectRatio;
+    quality?: AvatarGenerationQuality;
+    styleMode?: AvatarStyleMode;
   };
   output?: {
     id: string;

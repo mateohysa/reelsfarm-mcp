@@ -1,6 +1,6 @@
 {
   "name": "@reelsfarm/mcp-client",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Typed TypeScript SDK and CLI for the ReelsFarm MCP server.",
   "type": "module",
   "license": "MIT",

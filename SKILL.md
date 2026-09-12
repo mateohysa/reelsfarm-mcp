@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.0.0` with MCP contract `2026-08-22.1`.
+This skill targets SDK and server `3.1.0` with MCP contract `2026-09-12.1`.
 
 ## Install and Auth
 
@@ -101,7 +101,12 @@ reelsfarm social connected --agent
 Generate an avatar:
 
 ```bash
-reelsfarm avatars generate --prompt "Creator selfie style" --agent
+reelsfarm avatars generate \
+  --prompt "Creator selfie style" \
+  --model gpt-image-2.5-sunburst \
+  --aspect-ratio 9:16 \
+  --quality high \
+  --agent
 reelsfarm confirm <confirmationId> --agent
 ```
 
@@ -110,6 +115,8 @@ Continue an image generation conversation:
 ```bash
 reelsfarm avatars generate \
   --prompt "Keep the same person and use a tighter crop" \
+  --model gpt-image-2.5-sunburst \
+  --quality high \
   --reference-url /api/assets/user-generated?key=user-id/image.png \
   --conversation-id 11111111-1111-4111-8111-111111111111 \
   --parent-generation-id 22222222-2222-4222-8222-222222222222 \

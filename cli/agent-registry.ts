@@ -65,10 +65,10 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('avatars.templates', 'reelsfarm avatars templates [--limit <n>] [--cursor <cursor>]', 'List avatar picker templates.', 'reelsfarm_list_avatar_templates', {
     optionalFlags: ['--limit', '--cursor'], examples: ['reelsfarm avatars templates --agent'],
   }),
-  fromTool('avatars.generate', 'reelsfarm avatars generate --prompt <prompt> [--model <model>] [--reference-url <url>] [--conversation-id <id>] [--parent-generation-id <id>]', 'Prepare or run an avatar generation conversation turn.', 'reelsfarm_prepare_generate_avatar', {
+  fromTool('avatars.generate', 'reelsfarm avatars generate --prompt <prompt> [--model <model>] [--reference-url <url>] [--aspect-ratio <ratio>] [--quality <quality>] [--style-mode <mode>] [--conversation-id <id>] [--parent-generation-id <id>]', 'Prepare or run an avatar generation conversation turn.', 'reelsfarm_prepare_generate_avatar', {
     requiredFlags: ['--prompt'],
-    optionalFlags: ['--model', '--reference-url', '--conversation-id', '--parent-generation-id', '--wait', '--yes', '--dry-run'],
-    examples: ['reelsfarm avatars generate --prompt "Creator selfie style" --agent'],
+    optionalFlags: ['--model', '--reference-url', '--aspect-ratio', '--quality', '--style-mode', '--conversation-id', '--parent-generation-id', '--wait', '--yes', '--dry-run'],
+    examples: ['reelsfarm avatars generate --prompt "Creator selfie style" --model gpt-image-2.5-sunburst --aspect-ratio 9:16 --quality high --agent'],
   }),
   fromTool('product-scenes.list', 'reelsfarm product-scenes list [--limit <n>]', 'List Product Studio images.', 'reelsfarm_list_gallery', {
     optionalFlags: ['--limit'], examples: ['reelsfarm product-scenes list --agent'],

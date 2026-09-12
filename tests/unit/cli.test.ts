@@ -84,6 +84,44 @@ describe('cli', () => {
     expect(program.commands.map((command) => command.name())).toContain('social');
   });
 
+  it('passes GPT Image 2.5 avatar controls through the CLI', async () => {
+    let seen: unknown;
+    const result = await runCli([
+      '--agent',
+      'avatars',
+      'generate',
+      '--prompt',
+      'Creator portrait with room for a headline',
+      '--model',
+      'gpt-image-2.5-sunburst',
+      '--aspect-ratio',
+      '4:5',
+      '--quality',
+      'medium',
+      '--style-mode',
+      'linkedin',
+    ], () => createClient({
+      avatars: {
+        generate: async (params: unknown) => {
+          seen = params;
+          return { jobId: 'job_1' };
+        },
+      },
+    }));
+
+    expect(seen).toEqual({
+      prompt: 'Creator portrait with room for a headline',
+      model: 'gpt-image-2.5-sunburst',
+      sourceImageUrl: undefined,
+      aspectRatio: '4:5',
+      quality: 'medium',
+      styleMode: 'linkedin',
+      conversationId: undefined,
+      parentGenerationId: undefined,
+    });
+    expect(result.json).toMatchObject({ ok: true, command: 'avatars.generate' });
+  });
+
   it('wraps read command output in an agent success envelope', async () => {
     const result = await runCli(['--agent', 'whoami']);
 

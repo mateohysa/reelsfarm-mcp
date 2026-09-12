@@ -418,12 +418,18 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .requiredOption('--prompt <prompt>')
     .option('--model <model>')
     .option('--reference-url <url>')
+    .option('--aspect-ratio <ratio>')
+    .option('--quality <quality>')
+    .option('--style-mode <mode>')
     .option('--conversation-id <id>')
     .option('--parent-generation-id <id>')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.avatars.generate({
       prompt: opts.prompt,
       model: opts.model,
       sourceImageUrl: opts.referenceUrl,
+      aspectRatio: opts.aspectRatio,
+      quality: opts.quality,
+      styleMode: opts.styleMode,
       conversationId: opts.conversationId,
       parentGenerationId: opts.parentGenerationId,
     }), globals), buildOptions));
