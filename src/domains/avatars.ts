@@ -1,6 +1,7 @@
 import type { AvatarGenerationQuality, AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
+import { unwrapStatusWithProvenance } from '../utils/provenance.js';
 import { DomainBase } from './base.js';
 
 export interface AvatarGenerationParams extends MutationOptions {
@@ -38,7 +39,7 @@ export class AvatarsDomain extends DomainBase {
 
   async getJobStatus(jobId: string) {
     const result = await this.call('reelsfarm_get_avatar_job_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+    return unwrapStatusWithProvenance(result);
   }
 
   delete(id: string) { return this.call('reelsfarm_delete_avatar', { id }); }

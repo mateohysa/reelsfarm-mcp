@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.0 - 2026-09-16
+
+- Match ReelsFarm MCP server `3.2.0` and contract `2026-09-16.1`.
+- Add typed ReelsFarm provider, execution-state, asset-created, and result-message fields.
+- Document the safe avatar-to-Seedance handoff through completed ReelsFarm asset URLs.
+- Prohibit using product upload sessions for avatar handoff.
+
 ## 3.1.0 - 2026-09-12
 
 - Match ReelsFarm MCP server `3.1.0` and contract `2026-09-12.1`.

@@ -4,6 +4,11 @@ import { prepareAndConfirm } from '../../src/utils/prepare-confirm.js';
 import type { JsonObject } from '../../src/types.js';
 
 const prepared = {
+  provider: 'reelsfarm' as const,
+  sourceTool: 'reelsfarm_prepare_generate_avatar',
+  executionState: 'PREPARED' as const,
+  assetCreated: false as const,
+  resultMessage: 'The ReelsFarm action is prepared only. No asset has been created.',
   confirmationId: 'c1',
   operationId: 'op1',
   expiresAt: new Date().toISOString(),

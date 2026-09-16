@@ -2,12 +2,12 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 3.1
+## Version 3.2
 
-SDK `3.1.0` matches ReelsFarm MCP server `3.1.0` and contract
-`2026-09-12.1`. It tracks all 107 public tools. It adds GPT Image 2.5 and typed
-avatar quality controls while retaining the complete MCP 3.0 publishing,
-slideshow, and automation contracts.
+SDK `3.2.0` matches ReelsFarm MCP server `3.2.0` and contract
+`2026-09-16.1`. It tracks all 107 public tools. Mutation and generation results
+now include explicit ReelsFarm provenance, execution state, and an
+`assetCreated` completion signal.
 
 Publishing aliases from MCP 2.x are removed. Read [MIGRATION.md](./MIGRATION.md)
 before you update a publishing integration.
@@ -64,7 +64,7 @@ duration, and optional spoken script settings. Slideshow generation accepts
 Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
 language instruction to the complete current slide text state.
 
-SDK 3.1.0 also maps the web content library workflows directly:
+SDK 3.2.0 also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -149,7 +149,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 3.1.0 generates one UUID for every logical mutation and reuses it if the
+SDK 3.2.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.

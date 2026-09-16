@@ -77,6 +77,30 @@ describe('generation conversation contracts', () => {
     });
   });
 
+  it('preserves ReelsFarm completion provenance when avatar status is unwrapped', async () => {
+    const result = {
+      status: {
+        status: 'COMPLETED',
+        avatar: { id: 'avatar_1', imageUrl: '/api/assets/user-generated?key=user/avatar.webp' },
+      },
+      provider: 'reelsfarm',
+      sourceTool: 'reelsfarm_get_avatar_job_status',
+      executionState: 'COMPLETED',
+      assetCreated: true,
+      resultMessage: 'ReelsFarm completed the action and returned the created asset in this response.',
+    };
+    const { context } = createContext(result);
+    const status = await new AvatarsDomain(context).getJobStatus('job_1');
+
+    expect(status).toMatchObject({
+      status: 'COMPLETED',
+      provider: 'reelsfarm',
+      executionState: 'COMPLETED',
+      assetCreated: true,
+      avatar: { id: 'avatar_1' },
+    });
+  });
+
   it('passes complete slideshow revision state and visual context', async () => {
     const { context, calls } = createContext();
     await new SlideshowsDomain(context).reviseText({

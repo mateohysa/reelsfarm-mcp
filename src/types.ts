@@ -62,6 +62,11 @@ export interface ReelsFarmClientOptions {
 }
 
 export interface PreparedAction {
+  provider: 'reelsfarm';
+  sourceTool: string;
+  executionState: 'PREPARED';
+  assetCreated: false;
+  resultMessage: string;
   confirmationId: string;
   operationId?: string;
   expiresAt: string;
@@ -76,6 +81,11 @@ export interface MutationOptions {
 }
 
 export interface DryRunResult {
+  provider: 'reelsfarm';
+  sourceTool: string;
+  executionState: 'NOT_STARTED';
+  assetCreated: false;
+  resultMessage: string;
   dryRun: true;
   executed: false;
   toolName?: string;
@@ -90,6 +100,16 @@ export interface DryRunResult {
 }
 
 export type McpOperationStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED_RETRYABLE' | 'FAILED_FINAL';
+
+export type ReelsFarmExecutionState = 'NOT_STARTED' | 'PREPARED' | 'ENQUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface ReelsFarmExecutionProvenance {
+  provider: 'reelsfarm';
+  sourceTool: string;
+  executionState: ReelsFarmExecutionState;
+  assetCreated: boolean;
+  resultMessage: string;
+}
 
 export interface McpOperationSnapshot extends JsonObject {
   operationId: string;

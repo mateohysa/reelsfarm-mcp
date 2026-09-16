@@ -1,6 +1,7 @@
 import type { HookGenerationModel, HookGenerationPreset, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
+import { unwrapStatusWithProvenance } from '../utils/provenance.js';
 import { DomainBase } from './base.js';
 
 export interface HookGenerationParams extends MutationOptions {
@@ -44,7 +45,7 @@ export class HooksDomain extends DomainBase {
 
   async getJobStatus(jobId: string) {
     const result = await this.call('reelsfarm_get_generated_hook_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+    return unwrapStatusWithProvenance(result);
   }
 
   async importClips(params: HookClipImportParams): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {

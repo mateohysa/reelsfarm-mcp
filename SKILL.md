@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.1.0` with MCP contract `2026-09-12.1`.
+This skill targets SDK and server `3.2.0` with MCP contract `2026-09-16.1`.
 
 ## Install and Auth
 
@@ -88,6 +88,20 @@ Error:
 - Credential, mode, webhook-security, and permanent-delete actions are
   dashboard-only and are intentionally absent from the CLI.
 
+## Result Integrity
+
+- When the user chooses ReelsFarm, use only ReelsFarm commands for image and
+  video generation. Do not substitute a native agent image or video generator.
+- Treat `executionState` as authoritative. `NOT_STARTED` and `PREPARED` mean no
+  action executed. `ENQUEUED` and `PROCESSING` mean no completed asset exists.
+- Claim that ReelsFarm created media only when `provider` is `reelsfarm`,
+  `executionState` is `COMPLETED`, `assetCreated` is `true`, and the response
+  contains the ReelsFarm asset identifier and URL.
+- After confirmation, poll the matching job. Do not present the preparation or
+  confirmation response as the generated result.
+- Product upload sessions accept product images only. Never use them for an
+  avatar or an avatar-to-video handoff.
+
 ## Canonical Workflows
 
 Discover the environment:
@@ -109,6 +123,11 @@ reelsfarm avatars generate \
   --agent
 reelsfarm confirm <confirmationId> --agent
 ```
+
+To animate that avatar, wait for the avatar job to report `COMPLETED`. Pass its
+returned ReelsFarm `avatar.imageUrl` to hook generation with a Seedance or Veo
+model. Confirm that separate action and poll the hook job until it reports
+`COMPLETED` and `assetCreated: true`.
 
 Continue an image generation conversation:
 
