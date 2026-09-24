@@ -4,11 +4,16 @@ import type { JsonObject, WaitOptions } from '../types.js';
 import { sleep } from '../utils/sleep.js';
 
 const SUCCESS = new Set(['completed', 'complete', 'succeeded', 'success', 'done']);
-const FAILURE = new Set(['failed', 'failure', 'error', 'errored', 'cancelled', 'canceled']);
+const FAILURE = new Set(['failed', 'failure', 'error', 'errored', 'cancelled', 'canceled', 'failed_final', 'failed_retryable']);
 
 export function readStatusValue(value: unknown): string | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const record = value as Record<string, unknown>;
+  const progress = record.jobProgress;
+  if (progress && typeof progress === 'object') {
+    const step = (progress as Record<string, unknown>).step;
+    if (typeof step === 'string' && step !== 'unknown') return step;
+  }
   const status = record.status ?? record.state ?? record.phase;
   return typeof status === 'string' ? status.toLowerCase() : undefined;
 }
@@ -46,7 +51,11 @@ export async function pollUntilComplete<T extends JsonObject>(
       throw new ReelsFarmTimeoutError('Timed out waiting for ReelsFarm job after ' + timeoutMs + 'ms');
     }
 
-    await sleep(Math.min(delay, 30_000), options.signal);
+    const progress = status.jobProgress as Record<string, unknown> | undefined;
+    const suggested = progress?.nextPollAfterMs;
+    const interval = typeof suggested === 'number' && Number.isFinite(suggested) && suggested > 0
+      ? suggested : delay;
+    await sleep(Math.min(interval, 30_000, Math.max(0, timeoutMs - (Date.now() - startedAt))), options.signal);
     delay = Math.min(delay * 2, 30_000);
   }
 }

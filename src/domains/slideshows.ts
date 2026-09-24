@@ -1,3 +1,5 @@
+import { unwrapStatusWithProvenance } from '../utils/provenance.js';
+import type { JobStatusOptions } from '../types.js';
 import type { JsonObject, MaybePrepared, MutationOptions, PageOptions, SlideshowType } from '../types.js';
 import type {
   SlideshowAspectRatio,
@@ -66,7 +68,7 @@ export class SlideshowsDomain extends DomainBase {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_slideshow_text', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_TEXT', (id) => this.getTextJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_TEXT', (id, options) => this.getTextJobStatus(id, options)) : result;
   }
 
   async reviseText(params: {
@@ -80,29 +82,29 @@ export class SlideshowsDomain extends DomainBase {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_revise_slideshow_text', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_REVISION', (id) => this.getRevisionJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_REVISION', (id, options) => this.getRevisionJobStatus(id, options)) : result;
   }
 
   async finalize(params: { slideshowId: string; slides?: FinalizeSlideshowSlide[] } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_finalize_slideshow', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_EXPORT', (id) => this.getExportJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_EXPORT', (id, options) => this.getExportJobStatus(id, options)) : result;
   }
 
-  async getTextJobStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_slideshow_text_job_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+  async getTextJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_slideshow_text_job_status', { jobId, ...options });
+    return unwrapStatusWithProvenance(result);
   }
 
-  async getExportJobStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_slideshow_export_job_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+  async getExportJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_slideshow_export_job_status', { jobId, ...options });
+    return unwrapStatusWithProvenance(result);
   }
 
-  async getRevisionJobStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_slideshow_revision_job_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+  async getRevisionJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_slideshow_revision_job_status', { jobId, ...options });
+    return unwrapStatusWithProvenance(result);
   }
 
   async exportVideo(slideshowId: string, options: MutationOptions = {}): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
@@ -112,17 +114,17 @@ export class SlideshowsDomain extends DomainBase {
     });
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_VIDEO', (id) => this.getVideoExportJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'SLIDESHOW_VIDEO', (id, options) => this.getVideoExportJobStatus(id, options)) : result;
   }
 
-  getVideoExportJobStatus(jobId: string) {
-    return this.call('reelsfarm_get_slideshow_video_export_job_status', { jobId });
+  getVideoExportJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    return this.call('reelsfarm_get_slideshow_video_export_job_status', { jobId, ...options });
   }
 
-  getJobStatus(jobId: string, type: 'text' | 'revision' | 'export' | 'video' = 'text') {
-    if (type === 'revision') return this.getRevisionJobStatus(jobId);
-    if (type === 'export') return this.getExportJobStatus(jobId);
-    if (type === 'video') return this.getVideoExportJobStatus(jobId);
-    return this.getTextJobStatus(jobId);
+  getJobStatus(jobId: string, type: 'text' | 'revision' | 'export' | 'video' = 'text', options: JobStatusOptions = {}) {
+    if (type === 'revision') return this.getRevisionJobStatus(jobId, options);
+    if (type === 'export') return this.getExportJobStatus(jobId, options);
+    if (type === 'video') return this.getVideoExportJobStatus(jobId, options);
+    return this.getTextJobStatus(jobId, options);
   }
 }

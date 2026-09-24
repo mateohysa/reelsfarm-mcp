@@ -170,3 +170,19 @@ export interface WaitOptions {
 }
 
 export type { PlatformTarget } from './contracts/publishing.js';
+
+/** Optional bounded server wait. Omit or use zero for an immediate snapshot. */
+export interface JobStatusOptions {
+  /** Integer from 0 through 25000 milliseconds. */
+  waitMs?: number;
+}
+
+export interface JobProgress {
+  step: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'unknown';
+  terminal: boolean;
+  nextPollAfterMs: number;
+  processed?: number;
+  total?: number;
+  succeeded?: number;
+  failed?: number;
+}

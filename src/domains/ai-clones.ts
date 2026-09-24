@@ -1,3 +1,5 @@
+import { unwrapStatusWithProvenance } from '../utils/provenance.js';
+import type { JobStatusOptions } from '../types.js';
 import type { JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
@@ -72,11 +74,11 @@ export class AiClonesDomain extends DomainBase {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_ai_clone_job', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'AI_CLONE', (id) => this.getJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'AI_CLONE', (id, options) => this.getJobStatus(id, options)) : result;
   }
 
-  async getJobStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_ai_clone_job_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+  async getJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_ai_clone_job_status', { jobId, ...options });
+    return unwrapStatusWithProvenance(result);
   }
 }

@@ -1,3 +1,6 @@
+import { unwrapStatusWithProvenance } from '../utils/provenance.js';
+import type { JobProgress } from '../types.js';
+import type { JobStatusOptions } from '../types.js';
 import type { AvatarGenerationQuality, AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, PageOptions } from '../types.js';
 import { DomainBase } from './base.js';
 
@@ -5,6 +8,7 @@ export type ImageGenerationKind = 'AVATAR' | 'PRODUCT_PLACEMENT';
 export type ImageGenerationStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 export interface ImageGenerationTurn extends JsonObject {
+  jobProgress?: JobProgress;
   jobId: string;
   conversationId: string;
   parentGenerationId: string | null;
@@ -47,9 +51,9 @@ export class ImageGenerationsDomain extends DomainBase {
     return result.jobs;
   }
 
-  async getJob(jobId: string): Promise<ImageGenerationTurn> {
-    const result = await this.call<{ job: ImageGenerationTurn }>('reelsfarm_get_image_generation_job_status', { jobId });
-    return result.job;
+  async getJob(jobId: string, options: JobStatusOptions = {}): Promise<ImageGenerationTurn> {
+    const result = await this.call<{ job: ImageGenerationTurn }>('reelsfarm_get_image_generation_job_status', { jobId, ...options });
+    return unwrapStatusWithProvenance(result) as ImageGenerationTurn;
   }
 
   getConversation(conversationId: string, options: PageOptions = {}): Promise<ImageGenerationConversation> {

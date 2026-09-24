@@ -1,3 +1,4 @@
+import type { JobStatusOptions } from '../types.js';
 import type { HookGenerationModel, HookGenerationPreset, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
@@ -40,11 +41,11 @@ export class HooksDomain extends DomainBase {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_hook', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'HOOK', (id) => this.getJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'HOOK', (id, options) => this.getJobStatus(id, options)) : result;
   }
 
-  async getJobStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_generated_hook_status', { jobId });
+  async getJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_generated_hook_status', { jobId, ...options });
     return unwrapStatusWithProvenance(result);
   }
 
@@ -52,11 +53,11 @@ export class HooksDomain extends DomainBase {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_import_hook_clips', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'HOOK_IMPORT', (id) => this.getImportStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'HOOK_IMPORT', (id, options) => this.getImportStatus(id, options)) : result;
   }
 
-  async getImportStatus(jobId: string) {
-    return this.call('reelsfarm_get_hook_clip_import_status', { jobId });
+  async getImportStatus(jobId: string, options: JobStatusOptions = {}) {
+    return this.call('reelsfarm_get_hook_clip_import_status', { jobId, ...options });
   }
 
   cancelImport(jobId: string, options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {

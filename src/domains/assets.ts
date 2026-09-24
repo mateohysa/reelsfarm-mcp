@@ -1,3 +1,5 @@
+import { unwrapStatusWithProvenance } from '../utils/provenance.js';
+import type { JobStatusOptions } from '../types.js';
 import type { AssetCategory, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { DomainBase } from './base.js';
@@ -43,12 +45,12 @@ export class AssetsDomain extends DomainBase {
   async startBulkImport(params: { category: AssetCategory; items: BulkImportItem[] } & MutationOptions) {
     const result = await this.call('reelsfarm_start_bulk_import_media', params as unknown as JsonObject);
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'MEDIA_IMPORT', (id) => this.getBulkImportStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'MEDIA_IMPORT', (id, options) => this.getBulkImportStatus(id, options)) : result;
   }
 
-  async getBulkImportStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_bulk_import_media_job_status', { jobId });
-    return (result.status && typeof result.status === 'object' ? result.status : result) as JsonObject;
+  async getBulkImportStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_bulk_import_media_job_status', { jobId, ...options });
+    return unwrapStatusWithProvenance(result);
   }
 
   getInfo(category: AssetCategory, filename: string) {

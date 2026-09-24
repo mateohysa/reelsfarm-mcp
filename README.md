@@ -2,10 +2,10 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 3.2
+## Version 3.3
 
-SDK `3.2.0` matches ReelsFarm MCP server `3.2.0` and contract
-`2026-09-16.1`. It tracks all 107 public tools. Mutation and generation results
+SDK `3.3.0` matches ReelsFarm MCP server `3.3.0` and contract
+`2026-09-24.1`. It tracks all 107 public tools. Mutation and generation results
 now include explicit ReelsFarm provenance, execution state, and an
 `assetCreated` completion signal.
 
@@ -45,6 +45,31 @@ Use `gpt-image-2.5-sunburst` as the public GPT Image 2.5 model key. GPT Image 2
 and GPT Image 2.5 accept `low`, `medium`, or `high` quality. Seedream 5.0 Pro
 accepts `basic` or `high`. Omit `quality` for Nano Banana models.
 
+## Job waits and publishing discovery
+
+All 12 generation, import, and export status methods accept `{ waitMs: 25000 }`.
+Use an integer from 0 through 25000. Omit it or use 0 for an immediate snapshot.
+The server returns when recorded progress changes, the job ends, or the wait budget expires.
+This option does not apply to operation or publish status tools.
+
+```ts
+const snapshot = await rf.avatars.getJobStatus(jobId, { waitMs: 25000 });
+// A ReelsFarmJob also supports job.getStatus({ waitMs: 25000 }).
+console.log(snapshot.jobProgress);
+```
+
+`jobProgress` contains `step`, `terminal`, `nextPollAfterMs`, and available batch
+counts. Inspect item results even when a batch completes; some items can fail.
+The SDK preserves these fields when unwrapping job results. `job.wait()` follows
+the server's suggested polling delay, with backoff for older responses.
+
+Publishing preflight targets include `settingsSchema` (JSON Schema 2020-12 for
+one `platforms` entry), `rules`, and `limits`. Build settings from the exact
+account and media result. `ready` checks account and media readiness; required
+settings still need values. Missing limits are unknown. Integration targets
+can expose fewer settings than native connections. Run preflight again after
+changing the content, format, or account.
+
 ## Conversational generation
 
 Avatar and product-scene jobs return `conversationId`, `parentGenerationId`,
@@ -64,7 +89,7 @@ duration, and optional spoken script settings. Slideshow generation accepts
 Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
 language instruction to the complete current slide text state.
 
-SDK 3.2.0 also maps the web content library workflows directly:
+SDK 3.3.0 also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -77,7 +102,10 @@ SDK 3.2.0 also maps the web content library workflows directly:
 The same MCP contracts now cover the unified gallery, personal media
 collections, community images, hook import health and jobs, AI Clone voice
 search, product-context URL suggestions, saved character identity extraction,
-and all four web trash item types.
+and all eight creative Trash item types: avatars, product placements, videos,
+slideshows, stored assets, saved characters, drafts, and product contexts. Use the
+exact type and ID returned by `rf.trash.list()` when restoring. Permanent deletion
+remains dashboard-only.
 
 ## Protocol and OAuth
 
@@ -135,8 +163,9 @@ on stdout. Agent mode never mixes tables or human narration into command output.
 Errors are also JSON on stdout and use a non-zero exit code.
 
 Prepared actions such as generation, scheduling, publishing, updating, and
-deleting return a confirmation payload by default in agent mode. Review the
-summary, then run `reelsfarm confirm <confirmationId> --agent`. Pass `--yes` only
+deleting return a confirmation payload in Review mode. Creator and Autopilot
+can execute allowed actions immediately; agent mode only controls output. When
+a confirmation is returned, review the summary, then run `reelsfarm confirm <confirmationId> --agent`. Pass `--yes` only
 when the application should automatically confirm Review-mode actions.
 `--dry-run` is sent to the server and cannot mutate in Review, Creator, or
 Autopilot, even when combined with `--yes`.
@@ -149,7 +178,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 3.2.0 generates one UUID for every logical mutation and reuses it if the
+SDK 3.3.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.

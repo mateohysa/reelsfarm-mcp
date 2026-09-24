@@ -1,3 +1,4 @@
+import type { JobStatusOptions } from '../types.js';
 import type { AvatarGenerationQuality, AvatarModel, AvatarStyleMode, ImageAspectRatio, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
@@ -30,15 +31,15 @@ export class AvatarsDomain extends DomainBase {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_avatar', params as unknown as JsonObject);
     if ('confirmationId' in result) return result;
     const jobId = typeof result.jobId === 'string' ? result.jobId : undefined;
-    return jobId ? new ReelsFarmJob(jobId, 'AVATAR', (id) => this.getJobStatus(id)) : result;
+    return jobId ? new ReelsFarmJob(jobId, 'AVATAR', (id, options) => this.getJobStatus(id, options)) : result;
   }
 
   async generateBatch(items: AvatarGenerationParams[], options: MutationOptions = {}): Promise<MaybePrepared<JsonObject>> {
     return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_batch_generate_avatars', { items, ...options } as unknown as JsonObject);
   }
 
-  async getJobStatus(jobId: string) {
-    const result = await this.call('reelsfarm_get_avatar_job_status', { jobId });
+  async getJobStatus(jobId: string, options: JobStatusOptions = {}) {
+    const result = await this.call('reelsfarm_get_avatar_job_status', { jobId, ...options });
     return unwrapStatusWithProvenance(result);
   }
 

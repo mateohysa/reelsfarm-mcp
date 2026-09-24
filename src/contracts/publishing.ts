@@ -145,6 +145,12 @@ export interface PublishingPreflightTarget {
   requiresReconnect: boolean;
   issues: string[];
   supportedSettings: string[];
+  /** JSON Schema 2020-12 for one account-specific platforms entry. */
+  settingsSchema: Record<string, unknown>;
+  /** Account and media rules; readiness does not imply all settings are supplied. */
+  rules: string[];
+  /** Known limits only. Missing limits are unknown. */
+  limits: Record<string, number>;
   tiktok?: TikTokPublishingCapabilities;
 }
 

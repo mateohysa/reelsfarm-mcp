@@ -23,6 +23,10 @@ describe('tool manifest', () => {
     expect(toolNames).not.toContain('create_api_key');
   });
 
+  it('marks confirmation as destructive because it can execute a prepared mutation', () => {
+    expect(toolManifest.find((tool) => tool.name === 'reelsfarm_confirm_action')).toMatchObject({ readOnly: false, destructive: true });
+  });
+
   it('marks search and validation tools as read-only', () => {
     const byName = new Map(toolManifest.map((tool) => [tool.name, tool]));
 

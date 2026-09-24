@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.2.0` with MCP contract `2026-09-16.1`.
+This skill targets SDK and server `3.3.0` with MCP contract `2026-09-24.1`.
 
 ## Install and Auth
 
@@ -235,3 +235,28 @@ accounts. It does not add new social platforms, perform local file upload, or
 change connection policy. The dashboard-selected mode is authoritative. When
 uncertain, use `--dry-run`; never automatically re-prepare after a confirmation
 error, and inspect the original operation ID instead.
+
+## Job waits and publishing discovery
+
+All 12 generation, import, and export status methods accept `{ waitMs: 25000 }`.
+Use an integer from 0 through 25000. Omit it or use 0 for an immediate snapshot.
+The server returns when recorded progress changes, the job ends, or the wait budget expires.
+This option does not apply to operation or publish status tools.
+
+```ts
+const snapshot = await rf.avatars.getJobStatus(jobId, { waitMs: 25000 });
+// A ReelsFarmJob also supports job.getStatus({ waitMs: 25000 }).
+console.log(snapshot.jobProgress);
+```
+
+`jobProgress` contains `step`, `terminal`, `nextPollAfterMs`, and available batch
+counts. Inspect item results even when a batch completes; some items can fail.
+The SDK preserves these fields when unwrapping job results. `job.wait()` follows
+the server's suggested polling delay, with backoff for older responses.
+
+Publishing preflight targets include `settingsSchema` (JSON Schema 2020-12 for
+one `platforms` entry), `rules`, and `limits`. Build settings from the exact
+account and media result. `ready` checks account and media readiness; required
+settings still need values. Missing limits are unknown. Integration targets
+can expose fewer settings than native connections. Run preflight again after
+changing the content, format, or account.

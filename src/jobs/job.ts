@@ -1,15 +1,15 @@
-import type { JsonObject, WaitOptions } from '../types.js';
+import type { JobStatusOptions, JsonObject, WaitOptions } from '../types.js';
 import { pollUntilComplete } from './poller.js';
 
 export class ReelsFarmJob<TStatus extends JsonObject = JsonObject> {
   constructor(
     readonly jobId: string,
     readonly kind: string,
-    private readonly getStatusFn: (jobId: string) => Promise<TStatus>,
+    private readonly getStatusFn: (jobId: string, options?: JobStatusOptions) => Promise<TStatus>,
   ) {}
 
-  getStatus(): Promise<TStatus> {
-    return this.getStatusFn(this.jobId);
+  getStatus(options: JobStatusOptions = {}): Promise<TStatus> {
+    return this.getStatusFn(this.jobId, options);
   }
 
   wait(options: WaitOptions = {}): Promise<TStatus> {
@@ -24,7 +24,7 @@ export class ReelsFarmJob<TStatus extends JsonObject = JsonObject> {
 export function maybeWrapJob<TStatus extends JsonObject>(
   value: JsonObject,
   fallbackKind: string,
-  getStatus: (jobId: string) => Promise<TStatus>,
+  getStatus: (jobId: string, options?: JobStatusOptions) => Promise<TStatus>,
 ): ReelsFarmJob<TStatus> | JsonObject {
   const jobId = typeof value.jobId === 'string' ? value.jobId : undefined;
   if (!jobId) return value;

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.3.0 - 2026-09-25
+
+- Match server 3.3.0 and contract `2026-09-24.1`; the 107 public tool names are unchanged.
+- Expose optional `waitMs` on all 12 generation, import, and export status methods and job handles.
+- Preserve `jobProgress` and result provenance when unwrapping status and image conversation results.
+- Recognize normalized terminal job states and use server polling guidance.
+- Add the four newer creative Trash restore types and mark action confirmation as destructive.
+- Type publishing preflight `settingsSchema`, `rules`, and `limits`.
+
 ## 3.2.0 - 2026-09-16
 
 - Match ReelsFarm MCP server `3.2.0` and contract `2026-09-16.1`.

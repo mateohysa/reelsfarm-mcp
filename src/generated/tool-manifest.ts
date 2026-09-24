@@ -118,6 +118,7 @@ export const toolNames = [
 export type ToolName = typeof toolNames[number];
 
 const destructiveTools = new Set<string>([
+  'reelsfarm_confirm_action',
   'reelsfarm_cancel_hook_clip_import',
   'reelsfarm_delete_media_collection',
   'reelsfarm_delete_gallery_image',
