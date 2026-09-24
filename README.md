@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo-square.png" alt="ReelsFarm" width="128" />
+</p>
+
 # @reelsfarm/mcp-client
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.

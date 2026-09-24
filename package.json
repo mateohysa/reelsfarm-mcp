@@ -45,7 +45,8 @@
     "MIGRATION.md",
     "CHANGELOG.md",
     "LICENSE",
-    "SECURITY.md"
+    "SECURITY.md",
+    "assets/logo-square.png"
   ],
   "engines": {
     "node": ">=20"
