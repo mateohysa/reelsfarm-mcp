@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.3.0` with MCP contract `2026-09-24.1`.
+This skill targets SDK and server `3.4.0` with MCP contract `2026-09-27.1`.
 
 ## Install and Auth
 
@@ -260,3 +260,10 @@ account and media result. `ready` checks account and media readiness; required
 settings still need values. Missing limits are unknown. Integration targets
 can expose fewer settings than native connections. Run preflight again after
 changing the content, format, or account.
+
+For a native Instagram video, set `instagramShareToFeed: false` to keep the
+Reel in the Reels tab only. Set it to `true` to also allow it on the profile
+grid. New native Reels default to `false`. This field is not available for
+Instagram integration accounts or photo posts. Check that the selected
+account's `settingsSchema` includes it before sending it. `instagramTestReel`
+is a separate setting.
