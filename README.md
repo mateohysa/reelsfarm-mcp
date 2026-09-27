@@ -6,10 +6,10 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 3.3
+## Version 3.4
 
-SDK `3.3.0` matches ReelsFarm MCP server `3.3.0` and contract
-`2026-09-24.1`. It tracks all 107 public tools. Mutation and generation results
+SDK `3.4.0` matches ReelsFarm MCP server `3.4.0` and contract
+`2026-09-27.1`. It tracks all 107 public tools. Mutation and generation results
 now include explicit ReelsFarm provenance, execution state, and an
 `assetCreated` completion signal.
 
@@ -74,6 +74,13 @@ settings still need values. Missing limits are unknown. Integration targets
 can expose fewer settings than native connections. Run preflight again after
 changing the content, format, or account.
 
+For a native Instagram video, set `instagramShareToFeed: false` to keep the
+Reel in the Reels tab only. Set it to `true` to also allow it on the profile
+grid. New native Reels default to `false`. This field is not available for
+Instagram integration accounts or photo posts. Check that the selected
+account's `settingsSchema` includes it before sending it. `instagramTestReel`
+is a separate setting.
+
 ## Conversational generation
 
 Avatar and product-scene jobs return `conversationId`, `parentGenerationId`,
@@ -93,7 +100,7 @@ duration, and optional spoken script settings. Slideshow generation accepts
 Max mode visual context. Use `rf.slideshows.reviseText(...)` to apply a natural
 language instruction to the complete current slide text state.
 
-SDK 3.3.0 also maps the web content library workflows directly:
+SDK 3.4.0 also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -182,7 +189,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 3.3.0 generates one UUID for every logical mutation and reuses it if the
+SDK 3.4.0 generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.

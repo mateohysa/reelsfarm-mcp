@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0 - 2026-09-27
+
+- Match server 3.4.0 and contract `2026-09-27.1`.
+- Add `instagramShareToFeed` to native Instagram Reel target types and runtime validation.
+- Document the Reels tab default and account-specific preflight requirement.
+
 ## 3.3.0 - 2026-09-25
 
 - Match server 3.3.0 and contract `2026-09-24.1`; the 107 public tool names are unchanged.

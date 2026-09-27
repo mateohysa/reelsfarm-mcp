@@ -48,6 +48,8 @@ export interface InstagramPlatformTarget extends PlatformTargetBase {
   platform: 'INSTAGRAM';
   instagramVisibility?: 'PUBLIC' | 'PRIVATE' | 'DRAFT';
   instagramTestReel?: boolean;
+  /** False keeps a native Reel in the Reels tab only. True also allows it on the profile grid. */
+  instagramShareToFeed?: boolean;
 }
 
 export interface FacebookPlatformTarget extends PlatformTargetBase {
@@ -101,6 +103,7 @@ export const canonicalPlatformTargetSchema = z.discriminatedUnion('platform', [
     platform: z.literal('INSTAGRAM'),
     instagramVisibility: z.enum(['PUBLIC', 'PRIVATE', 'DRAFT']).optional(),
     instagramTestReel: z.boolean().optional(),
+    instagramShareToFeed: z.boolean().optional(),
   }).strict(),
   z.object({
     ...platformTargetBaseShape,
