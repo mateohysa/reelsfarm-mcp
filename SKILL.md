@@ -210,8 +210,8 @@ reelsfarm slideshows generate-text \
 
 Effort is `light`, `low`, `medium`, `high`, or `extra_high`. Higher effort uses
 more visual references (0, 2, 5, 10, or 20) and more model time. `extra_high`
-also reviews the rendered text layout. Without `--effort`, Max mode accepts up
-to five visual references. Give each reference its slide `aspectRatio`; layout
+also reviews the rendered text layout and is the dashboard default. Without
+`--effort`, Max mode accepts up to five visual references. Give each reference its slide `aspectRatio`; layout
 checks assume 1:1 without it.
 
 Revise current slideshow text through a conversational instruction:

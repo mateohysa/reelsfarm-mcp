@@ -113,8 +113,8 @@ language instruction to the complete current slide text state.
 Slideshow text generation and revision accept the dashboard `effort` presets:
 `light`, `low`, `medium`, `high`, and `extra_high`. Higher effort uses more
 visual references (0, 2, 5, 10, or 20) and more model time. `extra_high` also
-reviews the rendered text layout. Without `effort`, Max mode accepts up to five
-visual references; with it, up to 20. Give each reference its slide
+reviews the rendered text layout and is the dashboard default. Without `effort`,
+Max mode accepts up to five visual references; with it, up to 20. Give each reference its slide
 `aspectRatio`, because layout checks assume 1:1 when it is missing.
 
     const textJob = await rf.slideshows.generateText({
