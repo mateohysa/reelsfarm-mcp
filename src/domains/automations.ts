@@ -15,6 +15,10 @@ export class AutomationsDomain extends DomainBase {
   create(params: CreateAutomationParams): Promise<MaybePrepared<AutomationResult>> {
     return prepareAndConfirm<AutomationResult>(this.context, 'reelsfarm_prepare_create_automation', params as unknown as JsonObject);
   }
+  /**
+   * Omitted top-level fields keep their saved values, and images replaces the saved image rules.
+   * publishRules merges field by field; a new caption replaces a saved captionOverride.
+   */
   update(id: string, params: AutomationDefinition): Promise<MaybePrepared<AutomationResult>> {
     return prepareAndConfirm<AutomationResult>(this.context, 'reelsfarm_prepare_update_automation', { id, ...params } as JsonObject);
   }

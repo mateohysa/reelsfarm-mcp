@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.5.0 - 2026-10-08
+
+- Match server 3.5.0 and contract `2026-10-07.1`; track 110 public tools.
+- Add `rf.videos.generateVideo(...)`, `rf.videos.getGenerationStatus(...)`, and
+  `reelsfarm videos generate|status|list` for the Videos workbench.
+- Add `reelsfarm account pricing` for credit costs and per-model video limits.
+- Add `rf.imageGenerations.listTemplates(...)` and
+  `reelsfarm image-generations templates` for Product and Infographics templates.
+- Add the `nano-banana-2-1` avatar model.
+- Add slideshow text `effort` presets and per-reference `aspectRatio`; Max mode
+  accepts up to 20 visual references with `effort`.
+- Add gallery `imageCategory` and `groupCollections`, collection item paging,
+  and the video library `category` filter. Type video lists with `totalCount`.
+- Type the complete automation TikTok settings, including `tiktokTitle`.
+- Classify `INVALID_AUTOMATION` as a validation error and `VIDEO_JOB_IN_PROGRESS`
+  as a retryable conflict with its own CLI agent code.
+- Use `instanceof ReelsFarmJob` in the README job examples.
+
 ## 3.4.0 - 2026-09-27
 
 - Match server 3.4.0 and contract `2026-09-27.1`.

@@ -91,7 +91,11 @@ export function normalizeToolError(message: string, toolName: string, meta?: Jso
     case 'RATE_LIMITED':
       return new ReelsFarmRateLimitError(message, options);
     case 'UNSAFE_REMOTE_URL':
+    case 'INVALID_AUTOMATION':
       return new ReelsFarmValidationError(message, options);
+    case 'VIDEO_JOB_IN_PROGRESS':
+      // One hook, AI Clone, or Videos workbench job runs at a time. Retry after the active job ends.
+      return new ReelsFarmToolError(message, toolName, { ...options, retryable: true });
     default:
       return normalizeError(new ReelsFarmToolError(message, toolName, options), toolName);
   }

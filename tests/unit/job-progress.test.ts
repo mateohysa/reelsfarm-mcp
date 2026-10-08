@@ -7,7 +7,7 @@ import type { JsonObject } from '../../src/types.js';
 
 const progress = { step: 'completed', terminal: true, nextPollAfterMs: 0, processed: 2, total: 2, succeeded: 1, failed: 1 };
 
-describe('MCP 3.3 job status', () => {
+describe('MCP 3.5 job status', () => {
   it.each(['stored-asset', 'character', 'draft', 'product-context'] as const)('restores the new %s trash type', async (type) => {
     let actual: unknown;
     const context: DomainContext = { dryRun: false, autoConfirm: false, callTool: async (_, args) => {
@@ -17,7 +17,7 @@ describe('MCP 3.3 job status', () => {
     expect(actual).toEqual({ id: 'trash_1', type });
   });
 
-  it('passes bounded waits to all 12 status tools and preserves progress', async () => {
+  it('passes bounded waits to all 13 status tools and preserves progress', async () => {
     const calls: Array<{ name: string; args: JsonObject }> = [];
     const context: DomainContext = {
       dryRun: false, autoConfirm: false,
@@ -45,9 +45,10 @@ describe('MCP 3.3 job status', () => {
       (id: string) => slides.getJobStatus(id, 'export', { waitMs: 25000 }),
       (id: string) => slides.getJobStatus(id, 'video', { waitMs: 25000 }),
       (id: string) => new VideosDomain(context).getJobStatus(id, { waitMs: 25000 }),
+      (id: string) => new VideosDomain(context).getGenerationStatus(id, { waitMs: 25000 }),
     ];
     for (const read of readers) expect(await read('job_1')).toMatchObject({ jobProgress: progress, provider: 'reelsfarm' });
-    expect(new Set(calls.map(({ name }) => name)).size).toBe(12);
+    expect(new Set(calls.map(({ name }) => name)).size).toBe(13);
     expect(calls.every(({ args }) => args.jobId === 'job_1' && args.waitMs === 25000)).toBe(true);
   });
 

@@ -1,7 +1,11 @@
 import type {
   AutomationImages,
+  AutomationTikTokSettings,
+  ImageTemplateCategory,
   PlatformTarget,
+  SlideshowEffort,
   SlideshowSettings,
+  VideoGenerationParams,
 } from '../../src/index.js';
 
 const connectionId = '22222222-2222-4222-8222-222222222222';
@@ -30,3 +34,25 @@ export const looseSlideshowSettings: SlideshowSettings = { duration: 2000, arbit
 
 // @ts-expect-error Automation image objects reject fields outside the canonical nested contract.
 export const looseAutomationImages: AutomationImages = { overlayScope: 'all', arbitrarySetting: true };
+
+export const workbenchVideo: VideoGenerationParams = {
+  prompt: 'Slow push-in on a latte',
+  model: 'veo-3.1-fast',
+  durationSeconds: 8,
+  firstFrameUrl: '/api/assets/user-generated?key=user/frame.png',
+};
+
+// @ts-expect-error Image models are not Videos workbench models.
+export const imageModelForVideo: VideoGenerationParams = { prompt: 'Latte', model: 'gpt-image-2' };
+
+// @ts-expect-error Slideshow effort uses the dashboard presets.
+export const unknownEffort: SlideshowEffort = 'max';
+
+// @ts-expect-error People templates come from the avatar template list.
+export const peopleTemplateCategory: ImageTemplateCategory = 'people';
+
+export const automationTikTok: AutomationTikTokSettings = {
+  tiktokPublishMode: 'DIRECT',
+  tiktokPrivacyLevel: 'SELF_ONLY',
+  tiktokTitle: 'Daily tip',
+};

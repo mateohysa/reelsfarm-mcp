@@ -154,6 +154,7 @@ export type SlideshowType = 'EDUCATIONAL' | 'PROMOTIONAL' | 'STORYTELLING' | 'LI
 export type AvatarModel =
   | 'nano-banana-pro'
   | 'nano-banana-2-pro'
+  | 'nano-banana-2-1'
   | 'gpt-image-2'
   | 'gpt-image-2.5-sunburst'
   | 'seedream-5-pro';
@@ -162,6 +163,19 @@ export type AvatarStyleMode = 'default' | 'pinterest' | 'linkedin';
 export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
 export type HookGenerationModel = 'veo-3.1-fast' | 'veo-3.1' | 'seedance-2-fast' | 'seedance-2' | 'seedance-2.5';
 export type HookGenerationPreset = 'subtle_pan' | 'surprised_reaction' | 'nod_smile';
+export type VideoGenerationModel =
+  | 'seedance-2.5'
+  | 'seedance-2'
+  | 'seedance-2-fast'
+  | 'veo-3.1-fast'
+  | 'veo-3.1'
+  | 'gemini-omni-1.1-flash';
+export type VideoAspectRatio = '9:16' | '16:9' | '1:1';
+export type VideoResolution = '720p' | '1080p';
+/** Videos library category. People also includes avatar hooks and AI Clone videos. */
+export type VideoCategory = 'people' | 'product' | 'scenes';
+/** Images workbench category of a generated image. */
+export type ImageCategory = 'people' | 'product' | 'infographics';
 
 export interface WaitOptions {
   pollIntervalMs?: number;

@@ -4,6 +4,7 @@ import {
   ReelsFarmPolicyError,
   ReelsFarmRateLimitError,
   ReelsFarmToolError,
+  ReelsFarmValidationError,
   normalizeError,
   normalizeToolError,
 } from '../../src/errors.js';
@@ -33,5 +34,21 @@ describe('errors', () => {
     });
     expect(error).toBeInstanceOf(ReelsFarmIdempotencyError);
     expect(error.operationId).toBe('op_1');
+  });
+
+  it('classifies rejected automation requests as validation errors', () => {
+    const error = normalizeToolError('An ACTIVE automation needs a TikTok photo title.', 'reelsfarm_prepare_create_automation', {
+      'mcp/error_code': ['INVALID_AUTOMATION'],
+    });
+    expect(error).toBeInstanceOf(ReelsFarmValidationError);
+    expect(error.code).toBe('INVALID_AUTOMATION');
+  });
+
+  it('marks an active video job conflict as retryable', () => {
+    const error = normalizeToolError('A video generation is in progress. Wait for it to finish. Active job: job_1.', 'reelsfarm_prepare_generate_video', {
+      'mcp/error_code': ['VIDEO_JOB_IN_PROGRESS'],
+    });
+    expect(error).toBeInstanceOf(ReelsFarmToolError);
+    expect(error).toMatchObject({ code: 'VIDEO_JOB_IN_PROGRESS', retryable: true, toolName: 'reelsfarm_prepare_generate_video' });
   });
 });

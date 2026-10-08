@@ -1,4 +1,5 @@
 import type { SlideshowType } from '../types.js';
+import type { TikTokPrivacyLevel, TikTokPublishMode } from './publishing.js';
 
 export type AutomationDay = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat';
 
@@ -55,14 +56,29 @@ export interface AutomationImages {
 }
 
 export interface AutomationTikTokSettings {
+  tiktokPublishMode?: TikTokPublishMode;
+  /** Omit it for TikTok draft uploads. */
+  tiktokPrivacyLevel?: TikTokPrivacyLevel;
+  /** TikTok photo title. An ACTIVE automation requires 1 to 90 characters. */
+  tiktokTitle?: string;
+  /** Legacy TikTok-only caption that takes priority over caption. Prefer caption. */
+  captionOverride?: string;
+  /** Legacy alias. tiktokPublishMode and tiktokPrivacyLevel in the same request take priority. */
   tiktokPostMode?: 'PUBLIC' | 'PRIVATE' | 'DRAFT';
   tiktokAutoAddMusic?: boolean;
   tiktokIsAigc?: boolean;
+  tiktokAllowComment?: boolean;
   tiktokAllowDuet?: boolean;
   tiktokAllowStitch?: boolean;
+  tiktokCommercialContentEnabled?: boolean;
+  tiktokBrandOrganic?: boolean;
+  tiktokBrandedContent?: boolean;
+  tiktokPhotoCoverIndex?: number;
+  tiktokVideoCoverTimestampMs?: number;
 }
 
 export interface AutomationPublishRules {
+  /** To rotate captions across runs, put each one in square brackets: [First caption][Second caption]. */
   caption?: string | null;
   tiktokSettings?: AutomationTikTokSettings | null;
 }

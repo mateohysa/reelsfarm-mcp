@@ -1,4 +1,4 @@
-import type { JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
+import type { ImageCategory, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
 import { DomainBase } from './base.js';
 
 export type MediaCollectionAssetKind = 'AVATAR' | 'PRODUCT_PLACEMENT' | 'UGC_VIDEO' | 'SLIDESHOW';
@@ -36,12 +36,17 @@ export class MediaCollectionsDomain extends DomainBase {
   listGallery(options: PageOptions & {
     mode?: 'all' | 'slideshow-picker';
     kinds?: GalleryFeedKind[];
+    /** Filters AVATAR and PRODUCT_PLACEMENT items only. Set kinds to return images only. */
+    imageCategory?: ImageCategory;
+    /** Return each matching collection as one item, as the dashboard gallery tabs do. */
+    groupCollections?: boolean;
   } = {}) {
     return this.call('reelsfarm_list_gallery_feed', options as JsonObject);
   }
 
-  getItems(collectionId: string, mode: 'all' | 'slideshow-picker' = 'all') {
-    return this.call('reelsfarm_get_media_collection_items', { collectionId, mode });
+  /** Without limit or cursor, every item returns in one response. With either, follow nextCursor until hasMore is false. */
+  getItems(collectionId: string, mode: 'all' | 'slideshow-picker' = 'all', options: PageOptions = {}) {
+    return this.call('reelsfarm_get_media_collection_items', { collectionId, mode, ...options });
   }
 
   getMembershipState(items: MediaAssetReference[]) {

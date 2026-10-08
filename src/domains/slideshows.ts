@@ -3,6 +3,7 @@ import type { JobStatusOptions } from '../types.js';
 import type { JsonObject, MaybePrepared, MutationOptions, PageOptions, SlideshowType } from '../types.js';
 import type {
   SlideshowAspectRatio,
+  SlideshowEffort,
   SlideshowListResult,
   SlideshowResult,
   SlideshowSettings,
@@ -25,6 +26,8 @@ export interface FinalizeSlideshowSlide {
 export interface SlideshowVisualContextReference {
   order: number;
   imageUrl: string;
+  /** Text layout checks assume 1:1 when this is omitted. */
+  aspectRatio?: SlideshowAspectRatio;
 }
 
 export interface SlideshowRevisionTextItem {
@@ -63,6 +66,8 @@ export class SlideshowsDomain extends DomainBase {
     slideCount?: number;
     productContextId?: string;
     maxMode?: boolean;
+    /** Without effort, visualContext accepts up to five references. With effort, up to 20. */
+    effort?: SlideshowEffort;
     visualContext?: SlideshowVisualContextReference[];
   } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_generate_slideshow_text', params as unknown as JsonObject);
@@ -77,6 +82,8 @@ export class SlideshowsDomain extends DomainBase {
     productContextId?: string;
     slides: SlideshowRevisionSlide[];
     maxMode?: boolean;
+    /** Without effort, visualContext accepts up to five references. With effort, up to 20. */
+    effort?: SlideshowEffort;
     visualContext?: SlideshowVisualContextReference[];
   } & MutationOptions): Promise<MaybePrepared<ReelsFarmJob | JsonObject>> {
     const result = await prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_revise_slideshow_text', params as unknown as JsonObject);
