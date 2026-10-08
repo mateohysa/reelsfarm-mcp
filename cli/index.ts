@@ -175,6 +175,9 @@ function errorEnvelope(error: unknown): JsonObject {
   } else if (error instanceof ReelsFarmTimeoutError) {
     code = 'TIMEOUT';
     nextStep = 'Retry with --timeout <ms> or check the job status command.';
+  } else if (error instanceof ReelsFarmToolError && error.code === 'VIDEO_JOB_IN_PROGRESS') {
+    code = error.code;
+    nextStep = 'Wait for the active video job named in the message to finish, then rerun this command. Use a new --idempotency-key if you set one.';
   } else if (error instanceof ReelsFarmToolError) {
     code = 'TOOL_ERROR';
   }
@@ -410,6 +413,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
   const account = program.command('account');
   account.command('status').action((_, command) => run(command, (client) => client.account.status(), buildOptions));
+  account.command('pricing').action((_, command) => run(command, (client) => client.account.getGenerationPricing(), buildOptions));
 
   const avatars = program.command('avatars');
   avatars.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.avatars.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
@@ -486,6 +490,51 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   hooks.command('import-status').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.hooks.getImportStatus(opts.jobId), buildOptions));
   hooks.command('import-cancel').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.hooks.cancelImport(opts.jobId), buildOptions));
 
+  const videos = program.command('videos');
+  videos.command('list')
+    .option('--limit <n>')
+    .option('--cursor <cursor>')
+    .option('--source-type <type>')
+    .option('--category <category>')
+    .action((opts, command) => run(command, (client) => client.videos.list({
+      limit: opts.limit ? Number(opts.limit) : undefined,
+      cursor: opts.cursor,
+      sourceType: opts.sourceType,
+      category: opts.category,
+    }), buildOptions));
+  videos.command('generate')
+    .requiredOption('--prompt <prompt>')
+    .option('--model <model>')
+    .option('--duration <seconds>')
+    .option('--aspect-ratio <ratio>')
+    .option('--resolution <resolution>')
+    .option('--include-audio')
+    .option('--category <category>')
+    .option('--collection-id <id>')
+    .option('--first-frame-url <url>')
+    .option('--last-frame-url <url>')
+    .option('--reference-image-urls <urls>')
+    .option('--reference-video-url <url>')
+    .option('--reference-audio-url <url>')
+    .option('--conversation-id <id>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.videos.generateVideo({
+      prompt: opts.prompt,
+      model: opts.model,
+      durationSeconds: opts.duration ? Number(opts.duration) : undefined,
+      aspectRatio: opts.aspectRatio,
+      resolution: opts.resolution,
+      includeAudio: Boolean(opts.includeAudio),
+      category: opts.category,
+      collectionId: opts.collectionId,
+      firstFrameUrl: opts.firstFrameUrl,
+      lastFrameUrl: opts.lastFrameUrl,
+      referenceImageUrls: opts.referenceImageUrls ? String(opts.referenceImageUrls).split(',').map((url) => url.trim()).filter(Boolean) : undefined,
+      referenceVideoUrls: opts.referenceVideoUrl ? [opts.referenceVideoUrl] : undefined,
+      referenceAudioUrls: opts.referenceAudioUrl ? [opts.referenceAudioUrl] : undefined,
+      conversationId: opts.conversationId,
+    }), globals), buildOptions));
+  videos.command('status').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.videos.getGenerationStatus(opts.jobId), buildOptions));
+
   const slideshows = program.command('slideshows');
   slideshows.command('list').option('--limit <n>').action((opts, command) => run(command, (client) => client.slideshows.list({ limit: opts.limit ? Number(opts.limit) : undefined }), buildOptions));
   slideshows.command('get').requiredOption('--id <id>').action((opts, command) => run(command, (client) => client.slideshows.get(opts.id), buildOptions));
@@ -509,12 +558,14 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--type <type>')
     .option('--slide-count <n>')
     .option('--max')
+    .option('--effort <effort>')
     .option('--visual-context-json <json>')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.generateText({
       prompt: opts.prompt,
       slideshowType: opts.type,
       slideCount: opts.slideCount ? Number(opts.slideCount) : undefined,
       maxMode: Boolean(opts.max),
+      effort: opts.effort,
       visualContext: opts.visualContextJson ? JSON.parse(opts.visualContextJson) : undefined,
     }), globals), buildOptions));
   slideshows.command('revise-text')
@@ -522,12 +573,14 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .requiredOption('--slides-json <json>')
     .option('--type <type>')
     .option('--max')
+    .option('--effort <effort>')
     .option('--visual-context-json <json>')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.reviseText({
       instruction: opts.instruction,
       slideshowType: opts.type,
       slides: JSON.parse(opts.slidesJson),
       maxMode: Boolean(opts.max),
+      effort: opts.effort,
       visualContext: opts.visualContextJson ? JSON.parse(opts.visualContextJson) : undefined,
     }), globals), buildOptions));
   slideshows.command('finalize').requiredOption('--slideshow-id <id>').option('--slides-json <json>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.finalize({ slideshowId: opts.slideshowId, slides: opts.slidesJson ? JSON.parse(opts.slidesJson) : undefined }), globals), buildOptions));
@@ -535,6 +588,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
   const imageGenerations = program.command('image-generations');
   imageGenerations.command('active').action((_, command) => run(command, (client) => client.imageGenerations.listActive(), buildOptions));
+  imageGenerations.command('templates').option('--category <category>').action((opts, command) => run(command, (client) => client.imageGenerations.listTemplates({ category: opts.category }), buildOptions));
   imageGenerations.command('job').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.imageGenerations.getJob(opts.jobId), buildOptions));
   imageGenerations.command('conversation').requiredOption('--conversation-id <id>').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.imageGenerations.getConversation(opts.conversationId, {
     limit: opts.limit ? Number(opts.limit) : undefined,
@@ -586,13 +640,18 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
 
   const mediaCollections = program.command('media-collections');
   mediaCollections.command('list').option('--mode <mode>').action((opts, command) => run(command, (client) => client.mediaCollections.list(opts.mode), buildOptions));
-  mediaCollections.command('gallery').option('--mode <mode>').option('--limit <n>').option('--cursor <cursor>').option('--kinds <items>').action((opts, command) => run(command, (client) => client.mediaCollections.listGallery({
+  mediaCollections.command('gallery').option('--mode <mode>').option('--limit <n>').option('--cursor <cursor>').option('--kinds <items>').option('--image-category <category>').option('--group-collections').action((opts, command) => run(command, (client) => client.mediaCollections.listGallery({
     mode: opts.mode,
     limit: opts.limit ? Number(opts.limit) : undefined,
     cursor: opts.cursor,
     kinds: opts.kinds ? String(opts.kinds).split(',') as GalleryFeedKind[] : undefined,
+    imageCategory: opts.imageCategory,
+    groupCollections: Boolean(opts.groupCollections),
   }), buildOptions));
-  mediaCollections.command('items').requiredOption('--collection-id <id>').option('--mode <mode>').action((opts, command) => run(command, (client) => client.mediaCollections.getItems(opts.collectionId, opts.mode), buildOptions));
+  mediaCollections.command('items').requiredOption('--collection-id <id>').option('--mode <mode>').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.mediaCollections.getItems(opts.collectionId, opts.mode, {
+    limit: opts.limit ? Number(opts.limit) : undefined,
+    cursor: opts.cursor,
+  }), buildOptions));
   mediaCollections.command('create').requiredOption('--name <name>').option('--items-json <json>').action((opts, command) => run(command, (client) => client.mediaCollections.create({
     name: opts.name,
     initialItems: opts.itemsJson ? JSON.parse(opts.itemsJson) : undefined,
@@ -782,7 +841,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   }, buildOptions, { forceJson: true }));
 
   program.command('completion').argument('[shell]').action((shell = 'bash') => {
-    const commands = 'login logout whoami account avatars product-scenes hooks ai-clones slideshows image-generations media-collections community product-contexts trash social posts assets automations events validate operations confirm agent completion';
+    const commands = 'login logout whoami account avatars product-scenes hooks videos ai-clones slideshows image-generations media-collections community product-contexts trash social posts assets automations events validate operations confirm agent completion';
     const script = shell === 'zsh'
       ? '#compdef reelsfarm\n_reelsfarm() { compadd ' + commands + ' }\n_reelsfarm "$@"'
       : 'complete -W "' + commands + '" reelsfarm';

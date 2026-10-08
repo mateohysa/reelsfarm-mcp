@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.4.0` with MCP contract `2026-09-27.1`.
+This skill targets SDK and server `3.5.0` with MCP contract `2026-10-07.1`.
 
 ## Install and Auth
 
@@ -101,6 +101,9 @@ Error:
   confirmation response as the generated result.
 - Product upload sessions accept product images only. Never use them for an
   avatar or an avatar-to-video handoff.
+- A Videos workbench result exists only when `reelsfarm videos status` reports
+  `COMPLETED` with `assetCreated: true` and a `video` object. Publish it with
+  content type `UGC_VIDEO` and that `video.id`.
 
 ## Canonical Workflows
 
@@ -124,10 +127,58 @@ reelsfarm avatars generate \
 reelsfarm confirm <confirmationId> --agent
 ```
 
+Use `--model nano-banana-2-1` for Nano Banana 2.1. Omit `--quality` for Nano
+Banana models.
+
 To animate that avatar, wait for the avatar job to report `COMPLETED`. Pass its
 returned ReelsFarm `avatar.imageUrl` to hook generation with a Seedance or Veo
 model. Confirm that separate action and poll the hook job until it reports
 `COMPLETED` and `assetCreated: true`.
+
+Generate a video in the Videos workbench from a prompt, a start frame with an
+optional end frame, or up to three reference images:
+
+```bash
+reelsfarm videos generate \
+  --prompt "Slow push-in on a latte on a sunny cafe table" \
+  --model seedance-2.5 \
+  --duration 8 \
+  --aspect-ratio 9:16 \
+  --category product \
+  --agent
+reelsfarm confirm <confirmationId> --agent
+reelsfarm videos status --job-id <jobId> --agent
+```
+
+Models are `seedance-2.5` (default), `seedance-2`, `seedance-2-fast`, `veo-3.1`,
+`veo-3.1-fast`, and `gemini-omni-1.1-flash`. Each model supports its own
+durations, aspect ratios, and resolutions. Read them under `videoGeneration`
+in `reelsfarm account pricing --agent` before you choose.
+`gemini-omni-1.1-flash` needs `--include-audio`. Use `--first-frame-url` and
+`--last-frame-url` for frames, or `--reference-image-urls`,
+`--reference-video-url`, and `--reference-audio-url` for references. Do not
+combine frames with references. Seedance models alone accept video and audio
+references. Use owned ReelsFarm asset URLs only.
+
+One video job runs at a time per account across hooks, AI Clone, and the
+Videos workbench. The error code `VIDEO_JOB_IN_PROGRESS` names the active job.
+Poll that job until it finishes, then run the command again. Do not start a
+replacement while the job is still running.
+
+Use Product and Infographics image templates:
+
+```bash
+reelsfarm image-generations templates --category infographics --agent
+```
+
+Each template has a `referenceUrl`, a `categoryLine`, and a `prompt` brief with
+`[PLACEHOLDER]` fields. Replace the placeholders with the user's details,
+remove lines you cannot fill, and start the prompt with the `categoryLine`.
+Templates with `requiresProduct: true` use `reelsfarm product-scenes generate`
+with `--source-image-url` set to `referenceUrl` and `--product-image-url` set to
+the product photo. Other templates use `reelsfarm avatars generate` with
+`--reference-url` set to `referenceUrl` and the template's model, aspect ratio,
+and quality.
 
 Continue an image generation conversation:
 
@@ -145,6 +196,24 @@ reelsfarm image-generations conversation \
   --agent
 ```
 
+Generate slideshow text with a dashboard effort preset:
+
+```bash
+reelsfarm slideshows generate-text \
+  --prompt "8 slides about cold brew at home" \
+  --slide-count 8 \
+  --max \
+  --effort high \
+  --visual-context-json '[{"order":0,"imageUrl":"/api/assets/user-generated?key=user-id/slide-0.webp","aspectRatio":"9:16"}]' \
+  --agent
+```
+
+Effort is `light`, `low`, `medium`, `high`, or `extra_high`. Higher effort uses
+more visual references (0, 2, 5, 10, or 20) and more model time. `extra_high`
+also reviews the rendered text layout and is the dashboard default. Without
+`--effort`, Max mode accepts up to five visual references. Give each reference its slide `aspectRatio`; layout
+checks assume 1:1 without it.
+
 Revise current slideshow text through a conversational instruction:
 
 ```bash
@@ -158,9 +227,16 @@ Use the same gallery and collection workflow as the web app:
 
 ```bash
 reelsfarm media-collections gallery --kinds COLLECTION,AVATAR --agent
+reelsfarm media-collections gallery --kinds AVATAR,PRODUCT_PLACEMENT --image-category product --group-collections --agent
+reelsfarm media-collections items --collection-id <collectionId> --limit 50 --agent
+reelsfarm videos list --category people --agent
 reelsfarm media-collections create --name "Launch assets" --agent
 reelsfarm community collections --source pinterest --agent
 ```
+
+`--image-category` filters generated images only, so pair it with image
+`--kinds`. With `--limit` or `--cursor`, follow `nextCursor` until `hasMore` is
+false. Use `totalCount` from `videos list` to report how many videos exist.
 
 Inspect and start hook imports:
 
@@ -213,6 +289,10 @@ Use only `connectionId`, `tiktokPublishMode`, and `tiktokPrivacyLevel` in MCP
 3.0 publishing targets. Do not use `socialConnectionId`,
 `externalSocialAccountId`, or `tiktokPostMode`.
 
+An account with `managed: true` was connected by ReelsFarm through its managed
+Instagram or Facebook integration. Publish to it like any other integration
+account.
+
 Inspect scheduled publishing:
 
 ```bash
@@ -238,7 +318,7 @@ error, and inspect the original operation ID instead.
 
 ## Job waits and publishing discovery
 
-All 12 generation, import, and export status methods accept `{ waitMs: 25000 }`.
+All 13 generation, import, and export status methods accept `{ waitMs: 25000 }`.
 Use an integer from 0 through 25000. Omit it or use 0 for an immediate snapshot.
 The server returns when recorded progress changes, the job ends, or the wait budget expires.
 This option does not apply to operation or publish status tools.

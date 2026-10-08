@@ -1,4 +1,9 @@
 export type SlideshowAspectRatio = '4:5' | '9:16' | '3:4' | '1:1';
+/**
+ * Dashboard effort preset for slideshow text. Higher effort uses more visual references
+ * (0, 2, 5, 10, or 20) and more model time. extra_high also reviews the rendered text layout.
+ */
+export type SlideshowEffort = 'light' | 'low' | 'medium' | 'high' | 'extra_high';
 export type SlideshowTransitionStyle = 'hard' | 'fade' | 'slide';
 export type SlideshowVideoTransition = 'cut' | 'fade';
 export type SlideshowTextStyle =

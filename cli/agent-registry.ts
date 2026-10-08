@@ -58,6 +58,9 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('account.status', 'reelsfarm account status', 'Get account and entitlement status.', 'reelsfarm_get_account', {
     examples: ['reelsfarm account status --agent'],
   }),
+  fromTool('account.pricing', 'reelsfarm account pricing', 'Get generation credit costs and Videos workbench model limits.', 'reelsfarm_get_generation_pricing', {
+    examples: ['reelsfarm account pricing --agent'],
+  }),
   fromTool('avatars.list', 'reelsfarm avatars list [--limit <n>]', 'List generated and saved avatars.', 'reelsfarm_list_avatars', {
     optionalFlags: ['--limit'],
     examples: ['reelsfarm avatars list --limit 10 --agent'],
@@ -107,6 +110,17 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('hooks.import-cancel', 'reelsfarm hooks import-cancel --job-id <id>', 'Cancel a hook clip import.', 'reelsfarm_cancel_hook_clip_import', {
     requiredFlags: ['--job-id'], optionalFlags: ['--yes', '--dry-run'], destructive: true, examples: ['reelsfarm hooks import-cancel --job-id job_123 --agent'],
   }),
+  fromTool('videos.list', 'reelsfarm videos list [--category <category>] [--source-type <type>] [--limit <n>]', 'List completed library videos with the total matching count.', 'reelsfarm_list_videos', {
+    optionalFlags: ['--limit', '--cursor', '--source-type', '--category'], examples: ['reelsfarm videos list --category people --agent'],
+  }),
+  fromTool('videos.generate', 'reelsfarm videos generate --prompt <prompt> [--model <model>] [--duration <seconds>] [--aspect-ratio <ratio>] [--first-frame-url <url>] [--reference-image-urls <urls>]', 'Prepare or run a Videos workbench generation from a prompt, frames, or reference media.', 'reelsfarm_prepare_generate_video', {
+    requiredFlags: ['--prompt'],
+    optionalFlags: ['--model', '--duration', '--aspect-ratio', '--resolution', '--include-audio', '--category', '--collection-id', '--first-frame-url', '--last-frame-url', '--reference-image-urls', '--reference-video-url', '--reference-audio-url', '--conversation-id', '--wait', '--yes', '--dry-run'],
+    examples: ['reelsfarm videos generate --prompt "Slow push-in on a latte on a cafe table" --model seedance-2.5 --duration 8 --aspect-ratio 9:16 --agent'],
+  }),
+  fromTool('videos.status', 'reelsfarm videos status --job-id <id>', 'Get Videos workbench generation status.', 'reelsfarm_get_video_generation_status', {
+    requiredFlags: ['--job-id'], examples: ['reelsfarm videos status --job-id 11111111-1111-4111-8111-111111111111 --agent'],
+  }),
   fromTool('slideshows.list', 'reelsfarm slideshows list [--limit <n>]', 'List slideshows.', 'reelsfarm_list_slideshows', {
     optionalFlags: ['--limit'],
     examples: ['reelsfarm slideshows list --agent'],
@@ -120,14 +134,14 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     optionalFlags: ['--title', '--prompt', '--type', '--settings-json'],
     examples: ['reelsfarm slideshows create --title "Launch" --slides-json \'[{"imageUrl":"/api/assets/user-generated?key=user/slide.webp","order":0,"imageOpacity":80}]\' --settings-json \'{"duration":2500,"transitionStyle":"fade"}\' --agent'],
   }),
-  fromTool('slideshows.generate-text', 'reelsfarm slideshows generate-text --prompt <prompt> [--type <type>] [--slide-count <n>] [--max] [--visual-context-json <json>]', 'Prepare or run slideshow text generation.', 'reelsfarm_prepare_generate_slideshow_text', {
+  fromTool('slideshows.generate-text', 'reelsfarm slideshows generate-text --prompt <prompt> [--type <type>] [--slide-count <n>] [--max] [--effort <effort>] [--visual-context-json <json>]', 'Prepare or run slideshow text generation.', 'reelsfarm_prepare_generate_slideshow_text', {
     requiredFlags: ['--prompt'],
-    optionalFlags: ['--type', '--slide-count', '--max', '--visual-context-json', '--wait', '--yes', '--dry-run'],
+    optionalFlags: ['--type', '--slide-count', '--max', '--effort', '--visual-context-json', '--wait', '--yes', '--dry-run'],
     examples: ['reelsfarm slideshows generate-text --prompt "5 TikTok slides about skincare" --agent'],
   }),
-  fromTool('slideshows.revise-text', 'reelsfarm slideshows revise-text --instruction <text> --slides-json <json> [--max] [--visual-context-json <json>]', 'Prepare or run a conversational slideshow text revision.', 'reelsfarm_prepare_revise_slideshow_text', {
+  fromTool('slideshows.revise-text', 'reelsfarm slideshows revise-text --instruction <text> --slides-json <json> [--max] [--effort <effort>] [--visual-context-json <json>]', 'Prepare or run a conversational slideshow text revision.', 'reelsfarm_prepare_revise_slideshow_text', {
     requiredFlags: ['--instruction', '--slides-json'],
-    optionalFlags: ['--type', '--max', '--visual-context-json', '--wait', '--yes', '--dry-run'],
+    optionalFlags: ['--type', '--max', '--effort', '--visual-context-json', '--wait', '--yes', '--dry-run'],
     examples: ['reelsfarm slideshows revise-text --instruction "Move the title away from the face" --slides-json \'[...]\' --agent'],
   }),
   fromTool('slideshows.finalize', 'reelsfarm slideshows finalize --slideshow-id <id> [--slides-json <json>]', 'Prepare or run slideshow export/finalization.', 'reelsfarm_prepare_finalize_slideshow', {
@@ -142,6 +156,9 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   }),
   fromTool('image-generations.active', 'reelsfarm image-generations active', 'List active avatar and product-scene conversation turns.', 'reelsfarm_list_active_image_generation_jobs', {
     examples: ['reelsfarm image-generations active --agent'],
+  }),
+  fromTool('image-generations.templates', 'reelsfarm image-generations templates [--category <category>]', 'List Product and Infographics image templates with their briefs and settings.', 'reelsfarm_list_image_templates', {
+    optionalFlags: ['--category'], examples: ['reelsfarm image-generations templates --category product --agent'],
   }),
   fromTool('image-generations.job', 'reelsfarm image-generations job --job-id <id>', 'Get one image generation conversation turn.', 'reelsfarm_get_image_generation_job_status', {
     requiredFlags: ['--job-id'],
@@ -167,11 +184,11 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('media-collections.list', 'reelsfarm media-collections list [--mode <mode>]', 'List personal media collections.', 'reelsfarm_list_media_collections', {
     optionalFlags: ['--mode'], examples: ['reelsfarm media-collections list --agent'],
   }),
-  fromTool('media-collections.gallery', 'reelsfarm media-collections gallery [--mode <mode>] [--kinds <items>]', 'List the unified web gallery feed.', 'reelsfarm_list_gallery_feed', {
-    optionalFlags: ['--mode', '--limit', '--cursor', '--kinds'], examples: ['reelsfarm media-collections gallery --kinds COLLECTION,AVATAR --agent'],
+  fromTool('media-collections.gallery', 'reelsfarm media-collections gallery [--mode <mode>] [--kinds <items>] [--image-category <category>] [--group-collections]', 'List the unified web gallery feed.', 'reelsfarm_list_gallery_feed', {
+    optionalFlags: ['--mode', '--limit', '--cursor', '--kinds', '--image-category', '--group-collections'], examples: ['reelsfarm media-collections gallery --kinds COLLECTION,AVATAR --agent', 'reelsfarm media-collections gallery --kinds AVATAR,PRODUCT_PLACEMENT --image-category infographics --agent'],
   }),
-  fromTool('media-collections.items', 'reelsfarm media-collections items --collection-id <id>', 'List items in a personal media collection.', 'reelsfarm_get_media_collection_items', {
-    requiredFlags: ['--collection-id'], optionalFlags: ['--mode'], examples: ['reelsfarm media-collections items --collection-id col_123 --agent'],
+  fromTool('media-collections.items', 'reelsfarm media-collections items --collection-id <id> [--limit <n>] [--cursor <cursor>]', 'List items in a personal media collection.', 'reelsfarm_get_media_collection_items', {
+    requiredFlags: ['--collection-id'], optionalFlags: ['--mode', '--limit', '--cursor'], examples: ['reelsfarm media-collections items --collection-id col_123 --agent'],
   }),
   fromTool('media-collections.create', 'reelsfarm media-collections create --name <name> [--items-json <json>]', 'Create a personal media collection.', 'reelsfarm_create_media_collection', {
     requiredFlags: ['--name'], optionalFlags: ['--items-json', '--yes', '--dry-run'], examples: ['reelsfarm media-collections create --name Launch --agent'],

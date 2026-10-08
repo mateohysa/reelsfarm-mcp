@@ -42,6 +42,32 @@ describe('web workflow parity', () => {
     ]);
   });
 
+  it('maps dashboard gallery filters, collection paging, and video library categories', async () => {
+    const { context, calls } = createContext();
+    const collections = new MediaCollectionsDomain(context);
+
+    await collections.listGallery({ kinds: ['AVATAR', 'PRODUCT_PLACEMENT'], imageCategory: 'infographics', groupCollections: true });
+    await collections.getItems('22222222-2222-4222-8222-222222222222', 'all', { limit: 50, cursor: 'cursor_1' });
+    await collections.getItems('22222222-2222-4222-8222-222222222222');
+    await new VideosDomain(context).list({ category: 'people', limit: 10 });
+
+    expect(calls).toEqual([
+      {
+        name: 'reelsfarm_list_gallery_feed',
+        args: { kinds: ['AVATAR', 'PRODUCT_PLACEMENT'], imageCategory: 'infographics', groupCollections: true },
+      },
+      {
+        name: 'reelsfarm_get_media_collection_items',
+        args: { collectionId: '22222222-2222-4222-8222-222222222222', mode: 'all', limit: 50, cursor: 'cursor_1' },
+      },
+      {
+        name: 'reelsfarm_get_media_collection_items',
+        args: { collectionId: '22222222-2222-4222-8222-222222222222', mode: 'all' },
+      },
+      { name: 'reelsfarm_list_videos', args: { category: 'people', limit: 10 } },
+    ]);
+  });
+
   it('exposes both product upload control-plane steps', async () => {
     const { context, calls } = createContext();
     const assets = new AssetsDomain(context);

@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildProgram } from '../../cli/index.js';
-import { ReelsFarmAuthError, ReelsFarmRateLimitError, type ReelsFarmClient, type ReelsFarmClientOptions } from '../../src/index.js';
+import { ReelsFarmAuthError, ReelsFarmRateLimitError, ReelsFarmToolError, type ReelsFarmClient, type ReelsFarmClientOptions } from '../../src/index.js';
 
 class MemoryStream {
   value = '';
@@ -82,6 +82,90 @@ describe('cli', () => {
     expect(program.commands.map((command) => command.name())).toContain('community');
     expect(program.commands.map((command) => command.name())).toContain('agent');
     expect(program.commands.map((command) => command.name())).toContain('social');
+    expect(program.commands.map((command) => command.name())).toContain('videos');
+  });
+
+  it('passes Videos workbench controls through the CLI', async () => {
+    let seen: unknown;
+    const result = await runCli([
+      '--agent',
+      'videos',
+      'generate',
+      '--prompt',
+      'Slow push-in on a latte',
+      '--model',
+      'seedance-2.5',
+      '--duration',
+      '8',
+      '--aspect-ratio',
+      '1:1',
+      '--category',
+      'product',
+      '--reference-image-urls',
+      '/api/assets/user-uploads?key=user/a.png,/api/assets/user-uploads?key=user/b.png',
+      '--reference-video-url',
+      '/api/assets/user-uploads?key=user/motion.mp4',
+      '--reference-audio-url',
+      '/api/assets/user-uploads?key=user/sound.mp3',
+    ], () => createClient({
+      videos: {
+        generateVideo: async (params: unknown) => {
+          seen = params;
+          return { jobId: 'job_1' };
+        },
+      },
+    }));
+
+    expect(seen).toEqual({
+      prompt: 'Slow push-in on a latte',
+      model: 'seedance-2.5',
+      durationSeconds: 8,
+      aspectRatio: '1:1',
+      includeAudio: false,
+      category: 'product',
+      referenceImageUrls: ['/api/assets/user-uploads?key=user/a.png', '/api/assets/user-uploads?key=user/b.png'],
+      referenceVideoUrls: ['/api/assets/user-uploads?key=user/motion.mp4'],
+      referenceAudioUrls: ['/api/assets/user-uploads?key=user/sound.mp3'],
+    });
+    expect(result.json).toMatchObject({ ok: true, command: 'videos.generate' });
+  });
+
+  it('passes slideshow effort, gallery filters, and collection paging through the CLI', async () => {
+    const seen: unknown[] = [];
+    const factory = () => createClient({
+      slideshows: { generateText: async (params: unknown) => { seen.push(params); return {}; } },
+      mediaCollections: {
+        listGallery: async (params: unknown) => { seen.push(params); return {}; },
+        getItems: async (...args: unknown[]) => { seen.push(args); return {}; },
+      },
+    });
+
+    await runCli(['--agent', 'slideshows', 'generate-text', '--prompt', 'Cold brew tips', '--max', '--effort', 'high'], factory);
+    await runCli(['--agent', 'media-collections', 'gallery', '--kinds', 'AVATAR,PRODUCT_PLACEMENT', '--image-category', 'product', '--group-collections'], factory);
+    await runCli(['--agent', 'media-collections', 'items', '--collection-id', 'col_123', '--limit', '20', '--cursor', 'cursor_1'], factory);
+
+    expect(seen[0]).toMatchObject({ prompt: 'Cold brew tips', maxMode: true, effort: 'high' });
+    expect(seen[1]).toMatchObject({ kinds: ['AVATAR', 'PRODUCT_PLACEMENT'], imageCategory: 'product', groupCollections: true });
+    expect(seen[2]).toEqual(['col_123', undefined, { limit: 20, cursor: 'cursor_1' }]);
+  });
+
+  it('reports an active video job with its own code in agent mode', async () => {
+    const result = await runCli(['--agent', 'videos', 'generate', '--prompt', 'Second video'], () => createClient({
+      videos: {
+        generateVideo: async () => {
+          throw new ReelsFarmToolError('A video generation is in progress. Wait for it to finish. Active job: job_1.', 'reelsfarm_prepare_generate_video', {
+            code: 'VIDEO_JOB_IN_PROGRESS',
+            retryable: true,
+          });
+        },
+      },
+    }));
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({
+      ok: false,
+      error: { code: 'VIDEO_JOB_IN_PROGRESS', retryable: true, nextStep: expect.stringContaining('active video job') },
+    });
   });
 
   it('passes GPT Image 2.5 avatar controls through the CLI', async () => {
@@ -482,6 +566,11 @@ describe('cli', () => {
     expect(byName.get('agent.commands')?.readOnly).toBe(true);
     expect(byName.get('posts.schedule')?.prepareBacked).toBe(true);
     expect(byName.get('operations.get')?.readOnly).toBe(true);
+    expect(byName.get('videos.generate')?.prepareBacked).toBe(true);
+    expect(byName.get('videos.status')?.readOnly).toBe(true);
+    expect(byName.get('videos.list')?.readOnly).toBe(true);
+    expect(byName.get('image-generations.templates')?.readOnly).toBe(true);
+    expect(byName.get('account.pricing')?.readOnly).toBe(true);
     expect(byName.has('webhooks.create')).toBe(false);
     expect(byName.has('posts.delete')).toBe(false);
   });

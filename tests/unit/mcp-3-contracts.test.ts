@@ -168,4 +168,35 @@ describe('MCP 3.0 client contracts', () => {
       },
     });
   });
+
+  it('passes complete TikTok automation publishing settings', async () => {
+    const { context, calls } = createContext();
+    const tiktokSettings = {
+      tiktokPublishMode: 'DIRECT',
+      tiktokPrivacyLevel: 'PUBLIC_TO_EVERYONE',
+      tiktokTitle: 'Daily skincare tip',
+      tiktokAutoAddMusic: true,
+      tiktokIsAigc: true,
+      tiktokAllowComment: true,
+      tiktokAllowDuet: false,
+      tiktokAllowStitch: false,
+      tiktokCommercialContentEnabled: true,
+      tiktokBrandOrganic: true,
+      tiktokBrandedContent: false,
+      tiktokPhotoCoverIndex: 0,
+    } as const;
+    await new AutomationsDomain(context).update('55555555-5555-4555-8555-555555555555', {
+      status: 'ACTIVE',
+      publishRules: { caption: '[Morning tip][Evening tip]', tiktokSettings },
+    });
+
+    expect(calls[0]).toEqual({
+      name: 'reelsfarm_prepare_update_automation',
+      args: {
+        id: '55555555-5555-4555-8555-555555555555',
+        status: 'ACTIVE',
+        publishRules: { caption: '[Morning tip][Evening tip]', tiktokSettings },
+      },
+    });
+  });
 });
