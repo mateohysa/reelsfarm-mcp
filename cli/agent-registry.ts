@@ -266,10 +266,13 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     optionalFlags: ['--platforms', '--platforms-json', '--publish-format', '--caption', '--yes', '--dry-run'],
     examples: ['reelsfarm posts batch-publish --content-type AVATAR --content-id 11111111-1111-4111-8111-111111111111 --platforms instagram:22222222-2222-4222-8222-222222222222,facebook:33333333-3333-4333-8333-333333333333 --agent'],
   }),
-  fromTool('posts.update', 'reelsfarm posts update --id <id> [--when <date>] [--caption <caption>]', 'Prepare or run scheduled post updates.', 'reelsfarm_prepare_update_scheduled_post', {
+  fromTool('posts.update', 'reelsfarm posts update --id <id> [--when <date>] [--timezone <timezone>] [--caption <caption>] [--platforms-json <json>]', 'Prepare or run scheduled post updates, including the settings of existing destinations.', 'reelsfarm_prepare_update_scheduled_post', {
     requiredFlags: ['--id'],
-    optionalFlags: ['--when', '--caption', '--yes', '--dry-run'],
-    examples: ['reelsfarm posts update --id post_123 --when 2026-07-01T16:00:00Z --agent'],
+    optionalFlags: ['--when', '--timezone', '--caption', '--platforms-json', '--yes', '--dry-run'],
+    examples: [
+      'reelsfarm posts update --id post_123 --when 2026-07-01T16:00:00Z --agent',
+      `reelsfarm posts update --id post_123 --platforms-json '[{"platform":"TIKTOK","connectionId":"22222222-2222-4222-8222-222222222222","tiktokPublishMode":"DIRECT","tiktokPrivacyLevel":"PUBLIC_TO_EVERYONE","tiktokIsAigc":true}]' --agent`,
+    ],
   }),
   fromTool('posts.cancel', 'reelsfarm posts cancel --id <id>', 'Cancel a scheduled post directly.', 'reelsfarm_cancel_scheduled_post', {
     requiredFlags: ['--id'],
