@@ -292,6 +292,44 @@ describe('cli', () => {
     }
   });
 
+  it('passes timezone and destination settings to posts update', async () => {
+    let seen: { id: string; params: unknown } | undefined;
+    const platforms = [{
+      platform: 'TIKTOK',
+      connectionId: '22222222-2222-4222-8222-222222222222',
+      tiktokPublishMode: 'DIRECT',
+      tiktokPrivacyLevel: 'PUBLIC_TO_EVERYONE',
+      tiktokIsAigc: true,
+    }];
+    const factory = () => createClient({
+      posts: {
+        update: async (id: string, params: unknown) => {
+          seen = { id, params };
+          return { updated: true };
+        },
+      },
+    });
+
+    const result = await runCli([
+      '--agent',
+      '--yes',
+      'posts',
+      'update',
+      '--id',
+      'post_123',
+      '--timezone',
+      'Europe/Tirane',
+      '--platforms-json',
+      JSON.stringify(platforms),
+    ], factory);
+
+    expect(result.json).toMatchObject({ ok: true, command: 'posts.update', data: { updated: true } });
+    expect(seen).toEqual({
+      id: 'post_123',
+      params: { scheduledFor: undefined, timezone: 'Europe/Tirane', caption: undefined, platforms },
+    });
+  });
+
   it('returns confirmations for prepare-backed commands in agent mode unless --yes is passed', async () => {
     let seenOptions: ReelsFarmClientOptions | undefined;
     const factory = (options: ReelsFarmClientOptions) => {

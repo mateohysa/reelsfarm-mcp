@@ -749,7 +749,18 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       publishFormat: opts.publishFormat ? parsePublishFormat(opts.publishFormat) : undefined,
       caption: opts.caption,
     }), buildOptions));
-  posts.command('update').requiredOption('--id <id>').option('--when <date>').option('--caption <caption>').action((opts, command) => run(command, (client) => client.posts.update(opts.id, { scheduledFor: opts.when, caption: opts.caption }), buildOptions));
+  posts.command('update')
+    .requiredOption('--id <id>')
+    .option('--when <date>')
+    .option('--timezone <timezone>')
+    .option('--caption <caption>')
+    .option('--platforms-json <json>')
+    .action((opts, command) => run(command, (client) => client.posts.update(opts.id, {
+      scheduledFor: opts.when,
+      timezone: opts.timezone,
+      caption: opts.caption,
+      platforms: opts.platformsJson ? parsePlatformTargets(undefined, opts.platformsJson) : undefined,
+    }), buildOptions));
   posts.command('cancel').requiredOption('--id <id>').action((opts, command) => run(command, (client) => {
     return client.posts.cancel(opts.id);
   }, buildOptions));

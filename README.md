@@ -373,6 +373,26 @@ before it creates or executes the action.
 The CLI accepts simple `platform:connectionId` pairs. Use `--platforms-json`
 when you need captions or platform settings.
 
+Edit a post before it publishes with `rf.posts.update(...)`. Name each existing
+destination by `platform` and `connectionId` (`accountId` in
+`rf.posts.list(...)`); omitted fields keep their saved values, and media and
+accounts cannot change. Switching TikTok to `DIRECT` needs
+`tiktokPrivacyLevel` and, for video, `tiktokIsAigc`. The edit fails once the
+post has started publishing.
+
+    await rf.posts.update(scheduledPostId, {
+      caption: 'New caption',
+      platforms: [{
+        platform: 'TIKTOK',
+        connectionId: tiktokConnectionId,
+        tiktokPublishMode: 'DIRECT',
+        tiktokPrivacyLevel: 'PUBLIC_TO_EVERYONE',
+        tiktokIsAigc: true,
+      }],
+    });
+
+On the CLI, use `reelsfarm posts update --id <id> --platforms-json <json>`.
+
 ## Automations
 
 Automation `tiktokSettings` accept the same settings as a TikTok publishing

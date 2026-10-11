@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.6.0 - 2026-10-11
+
+- Match server 3.6.0 and contract `2026-10-11.1`; the 110 public tool names are unchanged.
+- `rf.posts.update(...)` accepts `platforms` to change the settings of a scheduled
+  post's existing destinations, such as TikTok delivery, privacy and disclosures.
+  Omitted fields keep their saved values. Export `UpdateScheduledPostParams`.
+- `reelsfarm posts update` accepts `--timezone` and `--platforms-json`.
+
 ## 3.5.0 - 2026-10-08
 
 - Match server 3.5.0 and contract `2026-10-07.1`; track 110 public tools.

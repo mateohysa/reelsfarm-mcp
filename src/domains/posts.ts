@@ -18,6 +18,15 @@ export interface PublishParams extends MutationOptions {
   publishFormat?: PublishFormat;
 }
 
+export interface UpdateScheduledPostParams extends MutationOptions {
+  scheduledFor?: string | Date;
+  timezone?: string;
+  /** New shared caption. It also clears the captionOverride of destinations that `platforms` does not set. */
+  caption?: string;
+  /** Settings to change for existing destinations. An empty captionOverride or tiktokTitle clears it. */
+  platforms?: PlatformTarget[];
+}
+
 export interface SchedulePostParams extends PublishParams {
   scheduledFor: string | Date;
 }
@@ -48,7 +57,12 @@ export class PostsDomain extends DomainBase {
     return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_batch_publish', params as unknown as JsonObject);
   }
 
-  update(id: string, params: { scheduledFor?: string | Date; timezone?: string; caption?: string } & MutationOptions): Promise<MaybePrepared<JsonObject>> {
+  /**
+   * Edit a SCHEDULED post before it publishes. `platforms` changes the settings of existing
+   * destinations, named by platform and connectionId (accountId in list results); omitted fields
+   * keep their saved values. Media and destination accounts cannot change.
+   */
+  update(id: string, params: UpdateScheduledPostParams): Promise<MaybePrepared<JsonObject>> {
     return prepareAndConfirm<JsonObject>(this.context, 'reelsfarm_prepare_update_scheduled_post', {
       id,
       ...params,
