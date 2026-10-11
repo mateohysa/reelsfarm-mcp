@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import {
   ReelsFarmAuthError,
@@ -862,6 +864,19 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   return program;
 }
 
-if (import.meta.url === 'file://' + process.argv[1]) {
+/**
+ * True when this module is the script Node was started with. npm runs the CLI through a
+ * symlink (node_modules/.bin/reelsfarm, npx, global installs), so both paths are resolved first.
+ */
+export function isCliEntryPoint(argvPath: string | undefined, moduleUrl: string): boolean {
+  if (!argvPath) return false;
+  try {
+    return realpathSync(argvPath) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
+
+if (isCliEntryPoint(process.argv[1], import.meta.url)) {
   void buildProgram().parseAsync(process.argv);
 }

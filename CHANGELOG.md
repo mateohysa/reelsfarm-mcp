@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.6.1 - 2026-10-11
+
+- Fix the `reelsfarm` CLI doing nothing when started through npm's bin link, as
+  with `npx reelsfarm`, a global install, or `node_modules/.bin/reelsfarm`. The
+  entry check compared an unresolved symlink path with the module path.
+- `SDK_VERSION` stays `3.6.0`, the MCP server release this client matches.
+
 ## 3.6.0 - 2026-10-11
 
 - Match server 3.6.0 and contract `2026-10-11.1`; the 110 public tool names are unchanged.
