@@ -2,8 +2,8 @@ export const DEFAULT_MCP_SERVER_URL = 'https://mcp.reelsfarm.com/mcp';
 export const DEFAULT_PROFILE = 'default';
 export const SDK_NAME = 'reelsfarm-mcp-client';
 // The MCP server release this client matches. npm patch releases of the client keep it.
-export const SDK_VERSION = '3.6.0';
-export const MCP_CONTRACT_VERSION = '2026-10-11.1';
+export const SDK_VERSION = '3.9.0';
+export const MCP_CONTRACT_VERSION = '2026-10-23.1';
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const DEFAULT_JOB_TIMEOUT_MS = 300_000;
 export const CONFIRMATION_TTL_MS = 10 * 60 * 1000;

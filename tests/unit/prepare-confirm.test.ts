@@ -10,6 +10,7 @@ const prepared = {
   assetCreated: false as const,
   resultMessage: 'The ReelsFarm action is prepared only. No asset has been created.',
   confirmationId: 'c1',
+  confirmationTool: 'reelsfarm_confirm_generate_avatar',
   operationId: 'op1',
   expiresAt: new Date().toISOString(),
   summary: 'test',
@@ -28,13 +29,13 @@ describe('prepareAndConfirm', () => {
     expect(result).toMatchObject({ confirmationId: 'c1', operationId: 'op1' });
   });
 
-  it('confirms a Review action once when autoConfirm is explicit', async () => {
+  it('confirms a Review action once, with the confirmation tool it names, when autoConfirm is explicit', async () => {
     let confirmCalls = 0;
     const result = await prepareAndConfirm<JsonObject>({
       dryRun: false,
       autoConfirm: true,
       async callTool(name) {
-        if (name === 'reelsfarm_confirm_action') {
+        if (name === 'reelsfarm_confirm_generate_avatar') {
           confirmCalls += 1;
           return { content: [], structuredContent: { jobId: 'job_1', status: 'PENDING' } };
         }
@@ -43,6 +44,21 @@ describe('prepareAndConfirm', () => {
     }, 'reelsfarm_prepare_generate_avatar', { prompt: 'x' });
     expect(result).toMatchObject({ jobId: 'job_1' });
     expect(confirmCalls).toBe(1);
+  });
+
+  it('finds the confirmation tool from the prepared tool when the result does not name it', async () => {
+    const called: string[] = [];
+    const unnamed: Partial<typeof prepared> = { ...prepared };
+    delete unnamed.confirmationTool;
+    await prepareAndConfirm<JsonObject>({
+      dryRun: false,
+      autoConfirm: true,
+      async callTool(name) {
+        called.push(String(name));
+        return { content: [], structuredContent: name === 'reelsfarm_prepare_generate_avatar' ? unnamed : { jobId: 'job_1' } };
+      },
+    }, 'reelsfarm_prepare_generate_avatar', { prompt: 'x' });
+    expect(called).toEqual(['reelsfarm_prepare_generate_avatar', 'reelsfarm_confirm_generate_avatar']);
   });
 
   it('accepts an immediate Creator or Autopilot result without confirming again', async () => {
@@ -65,7 +81,7 @@ describe('prepareAndConfirm', () => {
       dryRun: false,
       autoConfirm: true,
       async callTool(name) {
-        if (name === 'reelsfarm_confirm_action') throw new Error('Confirmation already used');
+        if (name === 'reelsfarm_confirm_generate_avatar') throw new Error('Confirmation already used');
         prepareCalls += 1;
         return { content: [], structuredContent: prepared };
       },

@@ -1,5 +1,7 @@
 import type {
+  AutomationContent,
   AutomationImages,
+  SlideshowSlideInput,
   AutomationTikTokSettings,
   ImageTemplateCategory,
   PlatformTarget,
@@ -56,3 +58,37 @@ export const automationTikTok: AutomationTikTokSettings = {
   tiktokPrivacyLevel: 'SELF_ONLY',
   tiktokTitle: 'Daily tip',
 };
+
+// MCP 3.9: an iMessage slide draws no photo, so it needs no imageUrl.
+export const messageSlide: SlideshowSlideInput = {
+  order: 0,
+  design: { design: 'imessage', contact: 'mom', messages: [{ from: 'them', text: 'how much was that coffee', reaction: 'question' }] },
+};
+
+// @ts-expect-error A tapback is one of the six Messages reactions, never another emoji.
+export const emojiTapback: SlideshowSlideInput = { order: 0, design: { design: 'imessage', contact: 'mom', messages: [{ from: 'me', text: 'hi', reaction: 'fire' }] } };
+
+export const styledText: SlideshowSlideInput = {
+  order: 0,
+  imageUrl: '/api/assets/user-generated?key=user/photo.jpg',
+  textItems: [{ id: 't1', text: 'Hi', fontSize: '24px', textSize: { width: 200, height: 40 }, textStyle: 'outline', textPosition: 'middle', textFont: 'typewriter', textEffect: 'background', textColor: '#ffffff', textX: 0.5, textY: 0.3 }],
+};
+
+export const automationContent: AutomationContent = {
+  topic: 'other',
+  slidesCount: 4,
+  slidesCountMax: 7,
+  design: 'classic',
+  provenFormat: 'help-me-choose',
+  textLooks: [{ textFont: 'classic', textEffect: 'outline', textColor: '#000000' }],
+};
+
+export const automationPhotos: AutomationImages = {
+  photoSources: { pinterest: true, tumblr: false, pexels: false, collections: true },
+  generatedPhotos: { count: 1, fromSlide: 2, toSlide: 3, model: 'seedream-5-pro' },
+};
+
+// @ts-expect-error The Look is one of the six choices.
+export const unknownLook: AutomationContent = { topic: 'other', slidesCount: 4, design: 'polaroid' };
+
+export const reactionVideo: VideoGenerationParams = { prompt: 'She says "wdym"', firstFrameUrl: '/api/assets/user-generated?key=user/frame.png', motionPreset: 'shocked', naturalSpeech: false };

@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.9.0 - 2026-10-23
+
+- Match server 3.9.0 and contract `2026-10-23.1`; track all 177 public tools.
+- Confirm each prepared action with its own confirmation tool, named in the
+  prepared result's `confirmationTool`. Servers since 3.7 reject
+  `reelsfarm_confirm_action` from clients, so 3.6 confirmations failed.
+  `reelsfarm confirm` now takes `--tool`, and agent output names it.
+- Add `getConfirmationToolName(...)` and a `confirmation` flag in the tool manifest.
+- Slideshows: `design` (the Look) and `format` on `generateText`; designed slides
+  (`SlideDesign`) on create, update, revise, and finalize; iMessage slides with no
+  `imageUrl`; TikTok `textFont`, `textEffect`, `textColor`, and free `textX`/`textY`.
+- Add `rf.slideshows.recreate(...)`, `searchPhotos`, `savePhotos`, saved formats
+  (`listFormats`, `saveFormat`, `archiveFormat`), and batches (`createBatch`,
+  `listBatches`, `getBatch`, `retryBatchItem`, `excludeBatchItem`), with matching
+  CLI commands.
+- Automations: `slidesCountMax`, `textLooks`, `recreateUrl`, `provenFormat`,
+  `design`, `photoSources`, and `generatedPhotos`.
+- Videos: `motionPreset` and `naturalSpeech`. Hooks: the new reaction presets
+  (`shocked`, `grateful`, `looks_up`, `fed_up`, `confident`).
+- Product contexts: an optional `imageUrl` and `rf.productContexts.update(...)`.
+  Add `rf.prompts.save(...)`.
+- `slideshows.update` accepts only `status: 'DRAFT'`; community collections no
+  longer filter by `source`.
+- Includes the 3.6.1 CLI fix for starting through npm's bin link.
+
 ## 3.6.1 - 2026-10-11
 
 - Fix the `reelsfarm` CLI doing nothing when started through npm's bin link, as

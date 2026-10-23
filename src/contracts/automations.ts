@@ -1,5 +1,6 @@
 import type { SlideshowType } from '../types.js';
 import type { TikTokPrivacyLevel, TikTokPublishMode } from './publishing.js';
+import type { SlideDesignChoice, SlideshowProvenFormatId, SlideshowTextEffect, SlideshowTextFont } from './slideshows.js';
 
 export type AutomationDay = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat';
 
@@ -19,11 +20,30 @@ export interface AutomationProductContext {
   description?: string | null;
 }
 
+/** A TikTok text look an automation uses: each post takes one of them for all its text. */
+export interface AutomationTextLook {
+  textFont: SlideshowTextFont;
+  textEffect: SlideshowTextEffect;
+  /** Lowercase hex colour, such as #ffffff. */
+  textColor: string;
+}
+
 export interface AutomationContent {
   topic: string;
   customTopic?: string | null;
+  /** Slides per post, or the fewest when slidesCountMax sets a range. */
   slidesCount: number;
+  /** Each post gets a random slide count from slidesCount to this. Null keeps one count. */
+  slidesCountMax?: number | null;
+  /** Up to six looks; each post uses one. Empty or null lets the AI pick a look per post. */
+  textLooks?: AutomationTextLook[] | null;
+  /** A public TikTok photo slideshow whose format every post copies, with new words and photos. */
+  recreateUrl?: string | null;
   slideshowType?: SlideshowType | null;
+  /** A proven format every post follows. It sets the slide count. */
+  provenFormat?: SlideshowProvenFormatId | null;
+  /** The Look of every post. iMessage posts have no photos, so they need no photo source. */
+  design?: SlideDesignChoice | null;
   formatInstructions?: string | null;
   narrativeContent?: string | null;
   productContext?: AutomationProductContext | null;
@@ -42,8 +62,28 @@ export interface AutomationPinnedSlideImage {
   image: AutomationImageAssetReference;
 }
 
+/** Where each post's photos come from. Null on automations made before photo search. */
+export interface AutomationPhotoSources {
+  pinterest: boolean;
+  tumblr: boolean;
+  pexels: boolean;
+  /** The image collections in collectionIds. */
+  collections: boolean;
+}
+
+/** New pictures made with AI for every post, saved to the Library and charged as image generations. */
+export interface AutomationGeneratedPhotos {
+  /** Pictures per post, 1 to 5. */
+  count: number;
+  fromSlide: number;
+  toSlide: number;
+  model?: 'nano-banana-pro' | 'nano-banana-2-1' | 'gpt-image-2' | 'gpt-image-2.5-sunburst' | 'seedream-5-pro' | null;
+}
+
 export interface AutomationImages {
   collectionIds?: string[];
+  photoSources?: AutomationPhotoSources | null;
+  generatedPhotos?: AutomationGeneratedPhotos | null;
   imageAspectRatio?: '9:16' | '4:5' | '3:4' | '1:1' | null;
   overlayScope?: 'off' | 'hook' | 'all' | null;
   useFixedHookImage?: boolean;

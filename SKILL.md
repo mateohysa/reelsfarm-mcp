@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.5.0` with MCP contract `2026-10-07.1`.
+This skill targets SDK and server `3.9.0` with MCP contract `2026-10-23.1`.
 
 ## Install and Auth
 
@@ -43,11 +43,12 @@ Confirmation required:
   "requiresConfirmation": true,
   "confirmation": {
     "id": "conf_123",
+    "tool": "reelsfarm_confirm_schedule_post",
     "expiresAt": "2026-07-01T15:00:00.000Z",
     "summary": "Schedule slideshow sl_123 to TikTok",
     "creditEstimate": null
   },
-  "nextStep": "reelsfarm confirm conf_123 --agent"
+  "nextStep": "reelsfarm confirm conf_123 --tool reelsfarm_confirm_schedule_post --agent"
 }
 ```
 
@@ -72,8 +73,9 @@ Error:
   `reelsfarm agent status`, `reelsfarm agent commands`, and
   `reelsfarm social connected --agent`.
 - Review returns prepared mutations for confirmation. Confirm only after the
-  user approves:
-  `reelsfarm confirm <confirmationId> --agent`.
+  user approves, with the command in `nextStep`:
+  `reelsfarm confirm <confirmationId> --tool <confirmation.tool> --agent`.
+  Each prepared action has its own confirmation tool.
 - Creator executes allowed content creation and reversible changes immediately,
   but the server denies publishing and automation activation.
 - Autopilot executes publishing and automation actions immediately, subject to
@@ -124,7 +126,7 @@ reelsfarm avatars generate \
   --aspect-ratio 9:16 \
   --quality high \
   --agent
-reelsfarm confirm <confirmationId> --agent
+reelsfarm confirm <confirmationId> --tool <confirmation.tool> --agent
 ```
 
 Use `--model nano-banana-2-1` for Nano Banana 2.1. Omit `--quality` for Nano
@@ -135,8 +137,21 @@ returned ReelsFarm `avatar.imageUrl` to hook generation with a Seedance or Veo
 model. Confirm that separate action and poll the hook job until it reports
 `COMPLETED` and `assetCreated: true`.
 
+Make slideshows with a Look (`auto`, `classic`, `tweet`, `imessage`,
+`notebook`, `magazine`) or a proven format, or recreate a public TikTok photo
+slideshow for a product. An iMessage slideshow needs no photos.
+
+```bash
+reelsfarm slideshows generate-text --prompt "Texts with my mom about my coffee spending" --design imessage --slide-count 4 --agent
+reelsfarm slideshows recreate --tiktok-url <link> --product-context-id <id> --wait --agent
+reelsfarm slideshows search-photos "aesthetic coffee" --agent
+```
+
 Generate a video in the Videos workbench from a prompt, a start frame with an
-optional end frame, or up to three reference images:
+optional end frame, or up to three reference images. With a start frame of a
+person, `--motion-preset shocked` (or `grateful`, `looks_up`, `fed_up`,
+`confident`, `nod_smile`, `subtle_pan`) opens with a hook reaction. Spoken
+lines in quotes get natural delivery unless you pass `--no-natural-speech`:
 
 ```bash
 reelsfarm videos generate \
@@ -146,7 +161,7 @@ reelsfarm videos generate \
   --aspect-ratio 9:16 \
   --category product \
   --agent
-reelsfarm confirm <confirmationId> --agent
+reelsfarm confirm <confirmationId> --tool <confirmation.tool> --agent
 reelsfarm videos status --job-id <jobId> --agent
 ```
 
@@ -271,7 +286,7 @@ reelsfarm posts schedule \
   --platforms tiktok:22222222-2222-4222-8222-222222222222 \
   --caption "Launch day" \
   --agent
-reelsfarm confirm <confirmationId> --agent
+reelsfarm confirm <confirmationId> --tool <confirmation.tool> --agent
 ```
 
 Publish now after explicit approval:

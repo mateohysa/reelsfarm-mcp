@@ -3,22 +3,6 @@ import { resolve } from 'node:path';
 import { toolNames } from '../src/generated/tool-manifest.js';
 import { MCP_CONTRACT_VERSION, SDK_VERSION } from '../src/constants.js';
 
-const dashboardOnlyTools = new Set([
-  'list_api_keys',
-  'revoke_api_key',
-  'list_oauth_clients',
-  'revoke_oauth_client',
-  'delete_product_context',
-  'delete_character',
-  'delete_asset',
-  'delete_draft',
-  'create_webhook',
-  'list_webhooks',
-  'delete_webhook',
-  'prepare_delete_automation',
-  'prepare_delete_scheduled_post',
-]);
-
 const unique = new Set(toolNames);
 if (unique.size !== toolNames.length) {
   throw new Error('Tool manifest contains duplicate names');
@@ -47,6 +31,9 @@ for (const required of [
 
 const appRoot = resolve(process.env.REELSFARM_APP_ROOT || '../ugc-reels');
 const serverSourcePath = resolve(appRoot, 'src/mcp-server.ts');
+// The app's generated public tool reference lists every tool a client sees, including the per-action
+// confirmation tools the server registers in code.
+const referencePath = resolve(appRoot, 'frontend/src/content/mcp-tool-reference.generated.ts');
 if (existsSync(serverSourcePath)) {
   const source = readFileSync(serverSourcePath, 'utf8');
   const serverVersion = source.match(/export const MCP_SERVER_VERSION = '([^']+)'/)?.[1];
@@ -57,13 +44,11 @@ if (existsSync(serverSourcePath)) {
   if (contractVersion !== MCP_CONTRACT_VERSION) {
     throw new Error(`MCP/SDK contract version drift. Server: ${contractVersion || 'unknown'}. SDK: ${MCP_CONTRACT_VERSION}.`);
   }
-  const toolsBlock = source.match(/const tools: McpTool\[\] = \[([\s\S]*?)\n\];\n\nconst unclassifiedTools/)?.[1];
-  if (!toolsBlock) throw new Error('Could not read the app MCP tool catalog');
-  const serverTools = [...toolsBlock.matchAll(/^ {4}name:\s*'([a-z0-9_]+)'/gm)]
-    .map((match) => match[1])
-    .filter((name): name is string => Boolean(name))
-    .filter((name) => !dashboardOnlyTools.has(name))
-    .map((name) => `reelsfarm_${name}`);
+  const literal = readFileSync(referencePath, 'utf8').match(/GENERATED_MCP_TOOL_REFERENCE = ("(?:[^"\\]|\\.)*");/)?.[1];
+  if (!literal) throw new Error('Could not read the app MCP tool reference');
+  const reference = JSON.parse(literal) as string;
+  const serverTools = [...reference.matchAll(/^## `(reelsfarm_[a-z0-9_]+)`$/gm)].map((match) => match[1]!);
+  if (serverTools.length === 0) throw new Error('The app MCP tool reference lists no tools');
   const sdkTools = new Set<string>(toolNames);
   const missing = serverTools.filter((name) => !sdkTools.has(name));
   const extra = toolNames.filter((name) => !serverTools.includes(name));

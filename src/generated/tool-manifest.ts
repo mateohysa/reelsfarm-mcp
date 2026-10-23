@@ -3,6 +3,8 @@ export interface ToolManifestEntry {
   readOnly: boolean;
   destructive: boolean;
   prepare: boolean;
+  /** Confirms one prepared operation of the tool it is named after (confirm_<action>). */
+  confirmation: boolean;
 }
 
 export const toolNames = [
@@ -28,7 +30,6 @@ export const toolNames = [
   'reelsfarm_delete_media_collection',
   'reelsfarm_get_mcp_server_info',
   'reelsfarm_get_queue_status',
-  'reelsfarm_get_operation',
   'reelsfarm_delete_avatar',
   'reelsfarm_delete_gallery_image',
   'reelsfarm_delete_video',
@@ -65,6 +66,7 @@ export const toolNames = [
   'reelsfarm_list_product_contexts',
   'reelsfarm_suggest_product_context_from_url',
   'reelsfarm_create_product_context',
+  'reelsfarm_update_product_context',
   'reelsfarm_list_videos',
   'reelsfarm_get_video_job_status',
   'reelsfarm_get_slideshow_video_export_job_status',
@@ -83,7 +85,6 @@ export const toolNames = [
   'reelsfarm_check_hook_import_access',
   'reelsfarm_get_hook_clip_import_status',
   'reelsfarm_cancel_hook_clip_import',
-  'reelsfarm_prepare_import_hook_clips',
   'reelsfarm_list_ai_clone_voices',
   'reelsfarm_list_ai_clone_assets',
   'reelsfarm_get_ai_clone_job_status',
@@ -93,6 +94,19 @@ export const toolNames = [
   'reelsfarm_list_slideshows',
   'reelsfarm_get_slideshow',
   'reelsfarm_create_slideshow',
+  'reelsfarm_prepare_recreate_slideshow',
+  'reelsfarm_get_recreate_slideshow_job_status',
+  'reelsfarm_search_photos',
+  'reelsfarm_save_slide_photos',
+  'reelsfarm_save_prompt',
+  'reelsfarm_list_slideshow_formats',
+  'reelsfarm_save_slideshow_format',
+  'reelsfarm_archive_slideshow_format',
+  'reelsfarm_list_slideshow_batches',
+  'reelsfarm_get_slideshow_batch',
+  'reelsfarm_prepare_create_slideshow_batch',
+  'reelsfarm_prepare_retry_slideshow_batch_item',
+  'reelsfarm_exclude_slideshow_batch_item',
   'reelsfarm_list_social_accounts',
   'reelsfarm_list_connected_accounts',
   'reelsfarm_preflight_publishing',
@@ -107,6 +121,7 @@ export const toolNames = [
   'reelsfarm_prepare_generate_ugc_video',
   'reelsfarm_prepare_generate_hook',
   'reelsfarm_prepare_generate_video',
+  'reelsfarm_prepare_import_hook_clips',
   'reelsfarm_prepare_ai_clone_job',
   'reelsfarm_prepare_generate_slideshow_text',
   'reelsfarm_prepare_revise_slideshow_text',
@@ -115,29 +130,101 @@ export const toolNames = [
   'reelsfarm_prepare_schedule_post',
   'reelsfarm_prepare_update_scheduled_post',
   'reelsfarm_prepare_publish_now',
-  'reelsfarm_confirm_action',
+  'reelsfarm_get_operation',
+  'reelsfarm_confirm_bulk_import_media',
+  'reelsfarm_confirm_create_product_upload_sessions',
+  'reelsfarm_confirm_import_media_from_url',
+  'reelsfarm_confirm_start_bulk_import_media',
+  'reelsfarm_confirm_move_asset',
+  'reelsfarm_confirm_rename_asset',
+  'reelsfarm_confirm_create_product_context',
+  'reelsfarm_confirm_update_product_context',
+  'reelsfarm_confirm_save_slide_photos',
+  'reelsfarm_confirm_save_prompt',
+  'reelsfarm_confirm_save_slideshow_format',
+  'reelsfarm_confirm_exclude_slideshow_batch_item',
+  'reelsfarm_confirm_archive_slideshow_format',
+  'reelsfarm_confirm_create_media_collection',
+  'reelsfarm_confirm_rename_media_collection',
+  'reelsfarm_confirm_update_media_collection_memberships',
+  'reelsfarm_confirm_create_slideshow',
+  'reelsfarm_confirm_duplicate_avatar',
+  'reelsfarm_confirm_duplicate_slideshow',
+  'reelsfarm_confirm_duplicate_video',
+  'reelsfarm_confirm_restore_trash_item',
+  'reelsfarm_confirm_restore_all_trash_items',
+  'reelsfarm_confirm_save_draft',
+  'reelsfarm_confirm_update_character',
+  'reelsfarm_confirm_update_slideshow',
+  'reelsfarm_confirm_delete_avatar',
+  'reelsfarm_confirm_delete_gallery_image',
+  'reelsfarm_confirm_delete_slideshow',
+  'reelsfarm_confirm_delete_video',
+  'reelsfarm_confirm_cancel_scheduled_post',
+  'reelsfarm_confirm_cancel_hook_clip_import',
+  'reelsfarm_confirm_delete_media_collection',
+  'reelsfarm_confirm_ai_clone_job',
+  'reelsfarm_confirm_batch_generate_avatars',
+  'reelsfarm_confirm_finalize_slideshow',
+  'reelsfarm_confirm_export_slideshow_video',
+  'reelsfarm_confirm_generate_avatar',
+  'reelsfarm_confirm_generate_hook',
+  'reelsfarm_confirm_generate_video',
+  'reelsfarm_confirm_import_hook_clips',
+  'reelsfarm_confirm_generate_product_scene',
+  'reelsfarm_confirm_save_character',
+  'reelsfarm_confirm_generate_slideshow_text',
+  'reelsfarm_confirm_revise_slideshow_text',
+  'reelsfarm_confirm_recreate_slideshow',
+  'reelsfarm_confirm_create_slideshow_batch',
+  'reelsfarm_confirm_retry_slideshow_batch_item',
+  'reelsfarm_confirm_generate_ugc_video',
+  'reelsfarm_confirm_batch_publish',
+  'reelsfarm_confirm_publish_now',
+  'reelsfarm_confirm_schedule_post',
+  'reelsfarm_confirm_update_scheduled_post',
+  'reelsfarm_confirm_create_automation',
+  'reelsfarm_confirm_update_automation',
 ] as const;
 
 export type ToolName = typeof toolNames[number];
 
 const destructiveTools = new Set<string>([
-  'reelsfarm_confirm_action',
-  'reelsfarm_cancel_hook_clip_import',
   'reelsfarm_delete_media_collection',
-  'reelsfarm_delete_gallery_image',
   'reelsfarm_delete_avatar',
+  'reelsfarm_delete_gallery_image',
   'reelsfarm_delete_video',
   'reelsfarm_delete_slideshow',
+  'reelsfarm_update_slideshow',
+  'reelsfarm_update_character',
+  'reelsfarm_rename_asset',
   'reelsfarm_cancel_scheduled_post',
+  'reelsfarm_save_draft',
+  'reelsfarm_cancel_hook_clip_import',
+  'reelsfarm_prepare_update_automation',
+  'reelsfarm_prepare_update_scheduled_post',
+  'reelsfarm_confirm_rename_asset',
+  'reelsfarm_confirm_save_draft',
+  'reelsfarm_confirm_update_character',
+  'reelsfarm_confirm_update_slideshow',
+  'reelsfarm_confirm_delete_avatar',
+  'reelsfarm_confirm_delete_gallery_image',
+  'reelsfarm_confirm_delete_slideshow',
+  'reelsfarm_confirm_delete_video',
+  'reelsfarm_confirm_cancel_scheduled_post',
+  'reelsfarm_confirm_cancel_hook_clip_import',
+  'reelsfarm_confirm_delete_media_collection',
+  'reelsfarm_confirm_update_scheduled_post',
+  'reelsfarm_confirm_update_automation',
 ]);
 
 const readOnlyTools = new Set<string>([
-  'reelsfarm_preflight_publishing',
-  'reelsfarm_check_hook_import_access',
-  'reelsfarm_suggest_product_context_from_url',
-  'reelsfarm_get_generation_pricing',
   'reelsfarm_search_assets',
   'reelsfarm_validate_caption',
+  'reelsfarm_suggest_product_context_from_url',
+  'reelsfarm_check_hook_import_access',
+  'reelsfarm_search_photos',
+  'reelsfarm_preflight_publishing',
 ]);
 
 export const toolManifest: ToolManifestEntry[] = toolNames.map((name) => {
@@ -147,5 +234,19 @@ export const toolManifest: ToolManifestEntry[] = toolNames.map((name) => {
     readOnly: readOnlyTools.has(name) || operationName.startsWith('get_') || operationName.startsWith('list_'),
     destructive: destructiveTools.has(name),
     prepare: operationName.startsWith('prepare_'),
+    confirmation: operationName.startsWith('confirm_'),
   };
 });
+
+const knownToolNames = new Set<string>(toolNames);
+
+/**
+ * The tool that confirms a prepared call of `toolName`, as the server names it: reelsfarm_prepare_x and
+ * a mutation reelsfarm_x are both confirmed by reelsfarm_confirm_x. Undefined when there is none.
+ */
+export function getConfirmationToolName(toolName: string): ToolName | undefined {
+  if (typeof toolName !== 'string' || !toolName.startsWith('reelsfarm_')) return undefined;
+  const operationName = toolName.slice('reelsfarm_'.length).replace(/^prepare_/, '');
+  const candidate = `reelsfarm_confirm_${operationName}`;
+  return knownToolNames.has(candidate) ? candidate as ToolName : undefined;
+}

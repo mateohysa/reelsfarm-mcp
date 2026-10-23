@@ -6,16 +6,23 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 3.5
+## Version 3.9
 
-SDK `3.5.0` matches ReelsFarm MCP server `3.5.0` and contract
-`2026-10-07.1`. It tracks all 110 public tools. Mutation and generation results
+SDK `3.9.0` matches ReelsFarm MCP server `3.9.0` and contract
+`2026-10-23.1`. It tracks all 177 public tools. Mutation and generation results
 include explicit ReelsFarm provenance, execution state, and an `assetCreated`
 completion signal.
 
-Version 3.5 adds the Videos workbench, Product and Infographics image
-templates, slideshow effort presets, the Nano Banana 2.1 avatar model, and the
-dashboard gallery and video library filters.
+Version 3.9 confirms each prepared action with its own confirmation tool,
+because servers since 3.7 no longer accept `reelsfarm_confirm_action` from
+clients. Update from 3.6: its confirmations fail against the current server, and
+`validateToolSurface: 'throw'` refuses to connect. Read [MIGRATION.md](./MIGRATION.md).
+
+It also adds slideshow Looks (tweet, iMessage, notebook, magazine cover),
+proven formats, Recreate from a TikTok link, TikTok text fonts and modes with
+free text positions, photo search, saved formats and batches, the automation
+photo sources and AI pictures, hook reaction styles, and natural speech for
+Videos.
 
 Publishing aliases from MCP 2.x are removed. Read [MIGRATION.md](./MIGRATION.md)
 before you update a publishing integration.
@@ -44,7 +51,9 @@ before you update a publishing integration.
       const result = await avatar.wait();
     }
 
-Review mode returns a `PreparedAction` by default. Trusted applications can set
+Review mode returns a `PreparedAction` by default. Its `confirmationTool` names
+the one tool that confirms it, such as `reelsfarm_confirm_generate_avatar`; call
+it with the `confirmationId` after the user approves. Trusted applications can set
 `autoConfirm: true` to confirm Review actions automatically. Creator and
 Autopilot connections execute the capabilities enabled by their server-owned
 connection policy without an extra SDK approval step.
@@ -125,13 +134,53 @@ Max mode accepts up to five visual references; with it, up to 20. Give each refe
       visualContext: slideImages.map((imageUrl, order) => ({ order, imageUrl, aspectRatio: '9:16' })),
     });
 
+## Looks, formats, and Recreate
+
+`generateText` takes a Look and a proven format. A designed slide comes back with
+a `design` object and no text items; pass it unchanged to `create` or `update`.
+An iMessage slide draws no photo, so it needs no `imageUrl` and no visual context.
+`auto` picks a designed look only when the prompt asks for one.
+
+    const chat = await rf.slideshows.generateText({
+      prompt: 'Texts with my mom when she finds out how much I spend on iced coffee',
+      slideCount: 4,
+      design: 'imessage',
+    });
+
+    const picks = await rf.slideshows.generateText({
+      prompt: 'The 3 best cold brew makers under $50',
+      format: 'rated-picks',
+      design: 'classic',
+    });
+
+`rf.slideshows.recreate(...)` copies a public TikTok photo slideshow for your
+product: the same format and text looks, new words, and a photo for every slide.
+It takes about two minutes, and the finished status has the `slideshowId`.
+
+    const job = await rf.slideshows.recreate({
+      tiktokUrl: 'https://www.tiktok.com/@creator/photo/7550000000000000000',
+      productContextId,
+      instructions: 'Use a wedding cake instead of the birthday cake',
+    });
+
+Text items accept TikTok's `textFont`, `textEffect` (`none`, `outline`,
+`background`, `translucent`) and `textColor`, which win over `textStyle`, plus
+`textX` and `textY` (0 to 1) for a free position. `searchPhotos(...)` finds
+photos on Pinterest, Tumblr, or Pexels, and `savePhotos(...)` turns picks into
+ReelsFarm URLs a slide can use. `saveFormat(...)` and `createBatch(formatId, count)`
+make many slideshows from one format, as Make 10 now does in the app.
+
 ## Videos workbench
 
 `rf.videos.generateVideo(...)` starts the same job as the dashboard Videos
 workbench. It supports text-to-video, a start frame with an optional end frame,
 or up to three reference images. Seedance models also accept one reference
 video and one reference audio file. Do not combine frames with reference media.
-Use owned ReelsFarm asset URLs for frames and references.
+Use owned ReelsFarm asset URLs for frames and references. With a start frame of a
+person, `motionPreset` opens the video with a hook reaction such as `shocked` or
+`grateful`. With audio, `naturalSpeech` (on by default) makes spoken lines in
+quotes sound like a real person without changing the words; set it to `false`
+to send the prompt exactly as written.
 
     const video = await rf.videos.generateVideo({
       prompt: 'Slow push-in on a latte on a sunny cafe table',
@@ -184,7 +233,7 @@ with `sourceImageUrl` set to `referenceUrl` and `productImageUrl` set to the
 product photo. `peopleTemplate` gives the brief and settings for the people
 reference images from `rf.avatars.listTemplates()`.
 
-SDK 3.5.0 also maps the web content library workflows directly:
+The SDK also maps the web content library workflows directly:
 
     const gallery = await rf.mediaCollections.listGallery({ kinds: ['COLLECTION', 'AVATAR'] });
     const collections = await rf.mediaCollections.list();
@@ -269,7 +318,7 @@ ReelsFarm is safe for shell-capable agents when invoked in agent mode:
     reelsfarm agent commands
     reelsfarm social connected --agent
     reelsfarm posts schedule --content-type SLIDESHOW --content-id 11111111-1111-4111-8111-111111111111 --when 2026-09-01T15:00:00Z --platforms tiktok:22222222-2222-4222-8222-222222222222 --publish-format VIDEO --agent
-    reelsfarm confirm conf_123 --agent
+    reelsfarm confirm conf_123 --tool reelsfarm_confirm_schedule_post --agent
 
 Use `--agent` or set `REELSFARM_AGENT_MODE=1` to receive strict JSON envelopes
 on stdout. Agent mode never mixes tables or human narration into command output.
@@ -278,7 +327,8 @@ Errors are also JSON on stdout and use a non-zero exit code.
 Prepared actions such as generation, scheduling, publishing, updating, and
 deleting return a confirmation payload in Review mode. Creator and Autopilot
 can execute allowed actions immediately; agent mode only controls output. When
-a confirmation is returned, review the summary, then run `reelsfarm confirm <confirmationId> --agent`. Pass `--yes` only
+a confirmation is returned, review the summary, then run the `nextStep` it gives:
+`reelsfarm confirm <confirmationId> --tool <confirmationTool> --agent`. Pass `--yes` only
 when the application should automatically confirm Review-mode actions.
 `--dry-run` is sent to the server and cannot mutate in Review, Creator, or
 Autopilot, even when combined with `--yes`.
@@ -291,7 +341,7 @@ dashboard-only and are not exposed by this package.
 
 ## Idempotency and operation recovery
 
-SDK 3.5.0 generates one UUID for every logical mutation and reuses it if the
+The SDK generates one UUID for every logical mutation and reuses it if the
 transport response is ambiguous. Supply `idempotencyKey` on a mutation input,
 or `--idempotency-key <key>` in the CLI, when retries must also survive process
 restarts. Never reuse a key with different arguments.
@@ -329,9 +379,9 @@ endpoint. The CLI also accepts `--allow-insecure-http`.
 
 The checked-in tool manifest reflects the current discoverable ReelsFarm MCP
 surface. Dashboard-only credential, webhook, and permanent-delete tools stay
-out of the public SDK catalog. The manifest check compares the 110 public SDK
-tools, release version, and contract version with the local app MCP catalog
-when both repositories are adjacent. Use
+out of the public SDK catalog. The manifest check compares the 177 public SDK
+tools with the app's generated public tool reference, and the release and
+contract versions with the app MCP server, when both repositories are adjacent. Use
 npm run generate:tools against an authenticated MCP endpoint when the server
 adds or removes tools.
 

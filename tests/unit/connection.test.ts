@@ -26,6 +26,9 @@ describe('connection safety', () => {
     expect(isRetrySafeToolCall('reelsfarm_prepare_generate_avatar', { idempotencyKey: 'logical-1' })).toBe(true);
     expect(isRetrySafeToolCall('reelsfarm_prepare_generate_avatar', {})).toBe(false);
     expect(isRetrySafeToolCall('unknown_raw_tool', {})).toBe(false);
+    // A confirmation is single-use, so repeating one after a dropped connection is safe.
+    expect(isRetrySafeToolCall('reelsfarm_confirm_generate_avatar', { confirmationId: 'c1' })).toBe(true);
+    expect(isRetrySafeToolCall('reelsfarm_confirm_action', { confirmationId: 'c1' })).toBe(false);
   });
 
   it('requests narrow OAuth scopes and rejects unknown scopes', () => {

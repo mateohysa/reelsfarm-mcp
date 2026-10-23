@@ -68,6 +68,8 @@ export interface PreparedAction {
   assetCreated: false;
   resultMessage: string;
   confirmationId: string;
+  /** The tool that confirms only this operation, such as reelsfarm_confirm_generate_slideshow_text. */
+  confirmationTool?: string;
   operationId?: string;
   expiresAt: string;
   summary: string;
@@ -162,7 +164,20 @@ export type AvatarGenerationQuality = 'low' | 'medium' | 'high' | 'basic';
 export type AvatarStyleMode = 'default' | 'pinterest' | 'linkedin';
 export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
 export type HookGenerationModel = 'veo-3.1-fast' | 'veo-3.1' | 'seedance-2-fast' | 'seedance-2' | 'seedance-2.5';
-export type HookGenerationPreset = 'subtle_pan' | 'surprised_reaction' | 'nod_smile';
+/**
+ * Hook reactions. They open proven app-promo hooks: shocked ("wdym you don't have to..."), grateful
+ * ("i'll never forget the girl who..."), looks_up ("girl to girl:", "POV:"), fed_up (pain call-outs),
+ * confident (hot takes); also nod_smile and subtle_pan. surprised_reaction is the older, milder surprise.
+ */
+export type HookGenerationPreset =
+  | 'subtle_pan'
+  | 'shocked'
+  | 'grateful'
+  | 'looks_up'
+  | 'fed_up'
+  | 'confident'
+  | 'nod_smile'
+  | 'surprised_reaction';
 export type VideoGenerationModel =
   | 'seedance-2.5'
   | 'seedance-2'

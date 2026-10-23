@@ -115,7 +115,7 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   }),
   fromTool('videos.generate', 'reelsfarm videos generate --prompt <prompt> [--model <model>] [--duration <seconds>] [--aspect-ratio <ratio>] [--first-frame-url <url>] [--reference-image-urls <urls>]', 'Prepare or run a Videos workbench generation from a prompt, frames, or reference media.', 'reelsfarm_prepare_generate_video', {
     requiredFlags: ['--prompt'],
-    optionalFlags: ['--model', '--duration', '--aspect-ratio', '--resolution', '--include-audio', '--category', '--collection-id', '--first-frame-url', '--last-frame-url', '--reference-image-urls', '--reference-video-url', '--reference-audio-url', '--conversation-id', '--wait', '--yes', '--dry-run'],
+    optionalFlags: ['--model', '--duration', '--aspect-ratio', '--resolution', '--include-audio', '--category', '--collection-id', '--first-frame-url', '--last-frame-url', '--reference-image-urls', '--reference-video-url', '--reference-audio-url', '--conversation-id', '--motion-preset', '--no-natural-speech', '--wait', '--yes', '--dry-run'],
     examples: ['reelsfarm videos generate --prompt "Slow push-in on a latte on a cafe table" --model seedance-2.5 --duration 8 --aspect-ratio 9:16 --agent'],
   }),
   fromTool('videos.status', 'reelsfarm videos status --job-id <id>', 'Get Videos workbench generation status.', 'reelsfarm_get_video_generation_status', {
@@ -134,10 +134,10 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     optionalFlags: ['--title', '--prompt', '--type', '--settings-json'],
     examples: ['reelsfarm slideshows create --title "Launch" --slides-json \'[{"imageUrl":"/api/assets/user-generated?key=user/slide.webp","order":0,"imageOpacity":80}]\' --settings-json \'{"duration":2500,"transitionStyle":"fade"}\' --agent'],
   }),
-  fromTool('slideshows.generate-text', 'reelsfarm slideshows generate-text --prompt <prompt> [--type <type>] [--slide-count <n>] [--max] [--effort <effort>] [--visual-context-json <json>]', 'Prepare or run slideshow text generation.', 'reelsfarm_prepare_generate_slideshow_text', {
+  fromTool('slideshows.generate-text', 'reelsfarm slideshows generate-text --prompt <prompt> [--type <type>] [--slide-count <n>] [--max] [--effort <effort>] [--visual-context-json <json>] [--format <format>] [--design <look>]', 'Prepare or run slideshow text generation, with an optional proven format and Look (auto, classic, tweet, imessage, notebook, magazine).', 'reelsfarm_prepare_generate_slideshow_text', {
     requiredFlags: ['--prompt'],
-    optionalFlags: ['--type', '--slide-count', '--max', '--effort', '--visual-context-json', '--wait', '--yes', '--dry-run'],
-    examples: ['reelsfarm slideshows generate-text --prompt "5 TikTok slides about skincare" --agent'],
+    optionalFlags: ['--type', '--slide-count', '--max', '--effort', '--visual-context-json', '--format', '--design', '--wait', '--yes', '--dry-run'],
+    examples: ['reelsfarm slideshows generate-text --prompt "5 TikTok slides about skincare" --agent', 'reelsfarm slideshows generate-text --prompt "texts with my mom about my coffee spending" --design imessage --slide-count 4 --agent'],
   }),
   fromTool('slideshows.revise-text', 'reelsfarm slideshows revise-text --instruction <text> --slides-json <json> [--max] [--effort <effort>] [--visual-context-json <json>]', 'Prepare or run a conversational slideshow text revision.', 'reelsfarm_prepare_revise_slideshow_text', {
     requiredFlags: ['--instruction', '--slides-json'],
@@ -153,6 +153,41 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     requiredFlags: ['--slideshow-id'],
     optionalFlags: ['--wait', '--yes', '--dry-run'],
     examples: ['reelsfarm slideshows export-video --slideshow-id sl_123 --agent'],
+  }),
+  fromTool('slideshows.recreate', 'reelsfarm slideshows recreate --tiktok-url <url> [--product-context-id <id>] [--instructions <text>] [--effort <effort>]', 'Prepare or run a Recreate of a public TikTok photo slideshow as a draft.', 'reelsfarm_prepare_recreate_slideshow', {
+    requiredFlags: ['--tiktok-url'],
+    optionalFlags: ['--product-context-id', '--instructions', '--effort', '--wait', '--yes', '--dry-run'],
+    examples: ['reelsfarm slideshows recreate --tiktok-url https://www.tiktok.com/@creator/photo/123 --product-context-id pc_123 --wait --agent'],
+  }),
+  fromTool('slideshows.search-photos', 'reelsfarm slideshows search-photos <query> [--source <source>] [--cursor <cursor>]', 'Search Pinterest, Tumblr or Pexels for slide photos.', 'reelsfarm_search_photos', {
+    requiredFlags: ['<query>'], optionalFlags: ['--source', '--cursor'], examples: ['reelsfarm slideshows search-photos "aesthetic coffee" --agent'],
+  }),
+  fromTool('slideshows.save-photos', 'reelsfarm slideshows save-photos --photos-json <json>', 'Save found photos as slide photos and return their ReelsFarm URLs.', 'reelsfarm_save_slide_photos', {
+    requiredFlags: ['--photos-json'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm slideshows save-photos --photos-json \'[{"url":"https://i.pinimg.com/..."}]\' --agent'],
+  }),
+  fromTool('slideshows.formats', 'reelsfarm slideshows formats [--cursor <cursor>]', 'List saved slideshow formats.', 'reelsfarm_list_slideshow_formats', {
+    optionalFlags: ['--cursor'], examples: ['reelsfarm slideshows formats --agent'],
+  }),
+  fromTool('slideshows.save-format', 'reelsfarm slideshows save-format --json-definition <json>', 'Save a slideshow format for batches.', 'reelsfarm_save_slideshow_format', {
+    requiredFlags: ['--json-definition'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm slideshows save-format --json-definition \'{"name":"Morning tips","content":{...}}\' --agent'],
+  }),
+  fromTool('slideshows.archive-format', 'reelsfarm slideshows archive-format --format-id <id>', 'Archive a saved slideshow format.', 'reelsfarm_archive_slideshow_format', {
+    requiredFlags: ['--format-id'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm slideshows archive-format --format-id fmt_123 --agent'],
+  }),
+  fromTool('slideshows.batch-create', 'reelsfarm slideshows batch-create --format-id <id> --count <n>', 'Prepare or run a batch of slideshows from a saved format.', 'reelsfarm_prepare_create_slideshow_batch', {
+    requiredFlags: ['--format-id', '--count'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm slideshows batch-create --format-id fmt_123 --count 10 --agent'],
+  }),
+  fromTool('slideshows.batches', 'reelsfarm slideshows batches [--cursor <cursor>]', 'List slideshow batches.', 'reelsfarm_list_slideshow_batches', {
+    optionalFlags: ['--cursor'], examples: ['reelsfarm slideshows batches --agent'],
+  }),
+  fromTool('slideshows.batch', 'reelsfarm slideshows batch --batch-id <id>', 'Fetch a slideshow batch and its items.', 'reelsfarm_get_slideshow_batch', {
+    requiredFlags: ['--batch-id'], examples: ['reelsfarm slideshows batch --batch-id b_123 --agent'],
+  }),
+  fromTool('slideshows.batch-retry', 'reelsfarm slideshows batch-retry --batch-id <id> --item-id <id>', 'Prepare or run a retry of a failed batch slideshow.', 'reelsfarm_prepare_retry_slideshow_batch_item', {
+    requiredFlags: ['--batch-id', '--item-id'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm slideshows batch-retry --batch-id b_123 --item-id i_123 --agent'],
+  }),
+  fromTool('slideshows.batch-exclude', 'reelsfarm slideshows batch-exclude --batch-id <id> --item-id <id>', 'Leave one slideshow out of a batch.', 'reelsfarm_exclude_slideshow_batch_item', {
+    requiredFlags: ['--batch-id', '--item-id'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm slideshows batch-exclude --batch-id b_123 --item-id i_123 --agent'],
   }),
   fromTool('image-generations.active', 'reelsfarm image-generations active', 'List active avatar and product-scene conversation turns.', 'reelsfarm_list_active_image_generation_jobs', {
     examples: ['reelsfarm image-generations active --agent'],
@@ -205,8 +240,8 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('media-collections.delete', 'reelsfarm media-collections delete --collection-id <id>', 'Delete a personal media collection.', 'reelsfarm_delete_media_collection', {
     requiredFlags: ['--collection-id'], optionalFlags: ['--yes', '--dry-run'], destructive: true, examples: ['reelsfarm media-collections delete --collection-id col_123 --agent'],
   }),
-  fromTool('community.collections', 'reelsfarm community collections [--source <source>]', 'List community image collections.', 'reelsfarm_list_community_collections', {
-    optionalFlags: ['--source', '--limit', '--offset'], examples: ['reelsfarm community collections --source pinterest --agent'],
+  fromTool('community.collections', 'reelsfarm community collections [--limit <n>] [--offset <n>]', 'List community image collections; each reports its source.', 'reelsfarm_list_community_collections', {
+    optionalFlags: ['--limit', '--offset'], examples: ['reelsfarm community collections --agent'],
   }),
   fromTool('community.images', 'reelsfarm community images --collection-id <id>', 'List community images.', 'reelsfarm_list_community_images', {
     requiredFlags: ['--collection-id'], optionalFlags: ['--limit', '--random'], examples: ['reelsfarm community images --collection-id col_123 --random --agent'],
@@ -217,8 +252,14 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('product-contexts.suggest', 'reelsfarm product-contexts suggest --url <url>', 'Suggest product context from a page URL.', 'reelsfarm_suggest_product_context_from_url', {
     requiredFlags: ['--url'], examples: ['reelsfarm product-contexts suggest --url https://example.com/product --agent'],
   }),
-  fromTool('product-contexts.create', 'reelsfarm product-contexts create --name <name> --description <text>', 'Create a product context.', 'reelsfarm_create_product_context', {
-    requiredFlags: ['--name', '--description'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm product-contexts create --name Serum --description "Vitamin C serum" --agent'],
+  fromTool('product-contexts.create', 'reelsfarm product-contexts create --name <name> --description <text> [--image-url <url>]', 'Create a product context, optionally with a product photo.', 'reelsfarm_create_product_context', {
+    requiredFlags: ['--name', '--description'], optionalFlags: ['--image-url', '--yes', '--dry-run'], examples: ['reelsfarm product-contexts create --name Serum --description "Vitamin C serum" --agent'],
+  }),
+  fromTool('product-contexts.update', 'reelsfarm product-contexts update --id <id> [--name <name>] [--description <text>] [--image-url <url>] [--remove-image]', 'Change a product context, or its photo.', 'reelsfarm_update_product_context', {
+    requiredFlags: ['--id'], optionalFlags: ['--name', '--description', '--image-url', '--remove-image', '--yes', '--dry-run'], examples: ['reelsfarm product-contexts update --id pc_123 --image-url https://example.com/app.png --agent'],
+  }),
+  fromTool('prompts.save', 'reelsfarm prompts save --kind <image|slideshow> --prompt <text>', 'Save a prompt to the prompt library.', 'reelsfarm_save_prompt', {
+    requiredFlags: ['--kind', '--prompt'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm prompts save --kind slideshow --prompt "5 slides about slow mornings" --agent'],
   }),
   fromTool('trash.list', 'reelsfarm trash list [--limit <n>] [--cursor <cursor>]', 'List unified web trash.', 'reelsfarm_list_trash', {
     optionalFlags: ['--limit', '--cursor'], examples: ['reelsfarm trash list --agent'],
@@ -329,10 +370,10 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
     requiredFlags: ['<text>', '--platforms'],
     examples: ['reelsfarm validate caption "Launch day" --platforms tiktok,instagram --agent'],
   }),
-  fromTool('confirm', 'reelsfarm confirm <confirmationId>', 'Execute a prepared action by confirmation ID.', 'reelsfarm_confirm_action', {
-    requiredFlags: ['<confirmationId>'],
+  fromTool('confirm', 'reelsfarm confirm <confirmationId> --tool <confirmationTool>', 'Execute a prepared action with the confirmation tool its prepared result names.', undefined, {
+    requiredFlags: ['<confirmationId>', '--tool'],
     safety: 'write',
-    examples: ['reelsfarm confirm conf_123 --agent'],
+    examples: ['reelsfarm confirm conf_123 --tool reelsfarm_confirm_generate_slideshow_text --agent'],
   }),
   fromTool('agent.status', 'reelsfarm agent status', 'Inspect CLI, endpoint, auth, and account readiness.', undefined, {
     safety: 'read',
