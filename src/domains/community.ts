@@ -2,7 +2,8 @@ import type { JsonObject } from '../types.js';
 import { DomainBase } from './base.js';
 
 export class CommunityDomain extends DomainBase {
-  listCollections(options: { limit?: number; offset?: number; source?: 'pinterest' | 'tumblr' } = {}) {
+  /** Each collection reports its own source; the list is no longer filtered by it. */
+  listCollections(options: { limit?: number; offset?: number } = {}) {
     return this.call('reelsfarm_list_community_collections', options as JsonObject);
   }
 

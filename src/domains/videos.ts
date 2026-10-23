@@ -1,6 +1,7 @@
 import { unwrapStatusWithProvenance } from '../utils/provenance.js';
 import type { JobProgress, JobStatusOptions } from '../types.js';
 import type {
+  HookGenerationPreset,
   JsonObject,
   MaybePrepared,
   MutationOptions,
@@ -49,6 +50,17 @@ export interface VideoGenerationParams extends MutationOptions {
   firstFrameUrl?: string;
   /** Owned ReelsFarm image URL for the ending frame. Requires firstFrameUrl. */
   lastFrameUrl?: string;
+  /**
+   * With a firstFrameUrl of a person, the hook reaction the video opens with. It adds the reaction and
+   * the hook timing rules before the prompt. Ignored without a firstFrameUrl.
+   */
+  motionPreset?: HookGenerationPreset;
+  /**
+   * With includeAudio and someone speaking, rewrite the prompt so the voice sounds like a real person: a
+   * tone and an action per line, the sound of the place, a still close shot for lip sync. The spoken words
+   * never change. Defaults to true; false sends the prompt exactly as written.
+   */
+  naturalSpeech?: boolean;
   /** Up to three owned ReelsFarm image URLs that guide the subject, product, scene, or style. */
   referenceImageUrls?: string[];
   /** Up to one owned ReelsFarm video URL. Seedance models only. */

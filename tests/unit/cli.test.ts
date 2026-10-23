@@ -149,6 +149,41 @@ describe('cli', () => {
     expect(seen[2]).toEqual(['col_123', undefined, { limit: 20, cursor: 'cursor_1' }]);
   });
 
+  it('passes MCP 3.9 slideshow and video controls through the CLI', async () => {
+    const seen: unknown[] = [];
+    const factory = () => createClient({
+      slideshows: {
+        generateText: async (params: unknown) => { seen.push(params); return {}; },
+        recreate: async (params: unknown) => { seen.push(params); return {}; },
+        searchPhotos: async (...args: unknown[]) => { seen.push(args); return {}; },
+        createBatch: async (...args: unknown[]) => { seen.push(args); return {}; },
+      },
+      videos: { generateVideo: async (params: unknown) => { seen.push(params); return {}; } },
+      productContexts: { update: async (...args: unknown[]) => { seen.push(args); return {}; } },
+    });
+
+    await runCli(['--agent', 'slideshows', 'generate-text', '--prompt', 'Texts with my mom', '--design', 'imessage', '--format', 'rated-picks'], factory);
+    await runCli(['--agent', 'slideshows', 'recreate', '--tiktok-url', 'https://www.tiktok.com/@a/photo/1', '--product-context-id', 'pc_1', '--instructions', 'Use a wedding cake'], factory);
+    await runCli(['--agent', 'slideshows', 'search-photos', 'aesthetic coffee', '--source', 'tumblr'], factory);
+    await runCli(['--agent', 'slideshows', 'batch-create', '--format-id', 'fmt_1', '--count', '10'], factory);
+    await runCli(['--agent', 'videos', 'generate', '--prompt', 'She says "hi"', '--motion-preset', 'shocked', '--no-natural-speech'], factory);
+    await runCli(['--agent', 'videos', 'generate', '--prompt', 'She says "hi"'], factory);
+    await runCli(['--agent', 'product-contexts', 'update', '--id', 'pc_1', '--remove-image'], factory);
+
+    expect(seen[0]).toMatchObject({ prompt: 'Texts with my mom', design: 'imessage', format: 'rated-picks' });
+    expect(seen[1]).toMatchObject({ tiktokUrl: 'https://www.tiktok.com/@a/photo/1', productContextId: 'pc_1', instructions: 'Use a wedding cake' });
+    expect(seen[2]).toEqual(['aesthetic coffee', { source: 'tumblr', cursor: undefined }]);
+    expect(seen[3]).toEqual(['fmt_1', 10]);
+    expect(seen[4]).toMatchObject({ motionPreset: 'shocked', naturalSpeech: false });
+    expect(seen[5]).not.toHaveProperty('naturalSpeech');
+    expect(seen[6]).toEqual(['pc_1', { name: undefined, description: undefined, imageUrl: null }]);
+  });
+
+  it('rejects confirm without a confirmation tool from the prepared result', async () => {
+    const result = await runCli(['--agent', 'confirm', 'conf_123', '--tool', 'reelsfarm_get_account'], () => createClient({}));
+    expect(result.json).toMatchObject({ ok: false });
+  });
+
   it('reports an active video job with its own code in agent mode', async () => {
     const result = await runCli(['--agent', 'videos', 'generate', '--prompt', 'Second video'], () => createClient({
       videos: {
@@ -340,7 +375,7 @@ describe('cli', () => {
             ? { scheduled: true }
             : options.dryRun
               ? { dryRun: true, executed: false }
-              : { confirmationId: 'conf_1', expiresAt: '2026-07-01T15:00:00.000Z', summary: 'Schedule post', creditEstimate: null },
+              : { confirmationId: 'conf_1', confirmationTool: 'reelsfarm_confirm_schedule_post', expiresAt: '2026-07-01T15:00:00.000Z', summary: 'Schedule post', creditEstimate: null },
         },
       });
     };
@@ -365,8 +400,8 @@ describe('cli', () => {
       ok: true,
       command: 'posts.schedule',
       requiresConfirmation: true,
-      confirmation: { id: 'conf_1' },
-      nextStep: 'reelsfarm confirm conf_1 --agent',
+      confirmation: { id: 'conf_1', tool: 'reelsfarm_confirm_schedule_post' },
+      nextStep: 'reelsfarm confirm conf_1 --tool reelsfarm_confirm_schedule_post --agent',
     });
 
     const executed = await runCli([
@@ -571,9 +606,9 @@ describe('cli', () => {
     });
   });
 
-  it('confirms prepared actions with reelsfarm_confirm_action', async () => {
+  it('confirms prepared actions with the confirmation tool they name', async () => {
     let calledWith: unknown;
-    const result = await runCli(['--agent', 'confirm', 'conf_123'], () => createClient({
+    const result = await runCli(['--agent', 'confirm', 'conf_123', '--tool', 'reelsfarm_confirm_generate_slideshow_text'], () => createClient({
       raw: {
         callTool: async (name: string, args: unknown) => {
           calledWith = { name, args };
@@ -583,7 +618,7 @@ describe('cli', () => {
       },
     }));
 
-    expect(calledWith).toEqual({ name: 'reelsfarm_confirm_action', args: { confirmationId: 'conf_123' } });
+    expect(calledWith).toEqual({ name: 'reelsfarm_confirm_generate_slideshow_text', args: { confirmationId: 'conf_123' } });
     expect(result.json).toMatchObject({
       ok: true,
       command: 'confirm',

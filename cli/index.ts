@@ -27,6 +27,8 @@ import {
   type PublishContentType,
   type PublishFormat,
   type ReelsFarmClientOptions,
+  getConfirmationToolName,
+  toolManifest,
 } from '../src/index.js';
 import { DEFAULT_MCP_SERVER_URL, DEFAULT_PROFILE, MCP_CONTRACT_VERSION, SDK_VERSION } from '../src/constants.js';
 import { resolveOptions } from '../src/transport/connection.js';
@@ -107,17 +109,21 @@ function isPreparedAction(value: unknown): value is PreparedAction {
 function agentSuccess(command: string, data: unknown): JsonObject {
   if (isPreparedAction(data)) {
     const id = data.confirmationId;
+    const tool = data.confirmationTool || (typeof data.sourceTool === 'string' ? getConfirmationToolName(data.sourceTool) : undefined);
     return {
       ok: true,
       command,
       requiresConfirmation: true,
       confirmation: {
         id,
+        tool: tool ?? null,
         expiresAt: data.expiresAt,
         summary: data.summary,
         creditEstimate: data.creditEstimate ?? null,
       },
-      nextStep: 'reelsfarm confirm ' + id + ' --agent',
+      nextStep: tool
+        ? `reelsfarm confirm ${id} --tool ${tool} --agent`
+        : 'Confirm this action in the ReelsFarm dashboard; the server named no confirmation tool.',
     };
   }
 
@@ -519,6 +525,8 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--reference-video-url <url>')
     .option('--reference-audio-url <url>')
     .option('--conversation-id <id>')
+    .option('--motion-preset <preset>')
+    .option('--no-natural-speech', 'Send spoken lines exactly as written')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.videos.generateVideo({
       prompt: opts.prompt,
       model: opts.model,
@@ -534,6 +542,9 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       referenceVideoUrls: opts.referenceVideoUrl ? [opts.referenceVideoUrl] : undefined,
       referenceAudioUrls: opts.referenceAudioUrl ? [opts.referenceAudioUrl] : undefined,
       conversationId: opts.conversationId,
+      motionPreset: opts.motionPreset,
+      // Natural speech is on by default; only turning it off is sent.
+      ...(opts.naturalSpeech === false ? { naturalSpeech: false } : {}),
     }), globals), buildOptions));
   videos.command('status').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.videos.getGenerationStatus(opts.jobId), buildOptions));
 
@@ -562,6 +573,8 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--max')
     .option('--effort <effort>')
     .option('--visual-context-json <json>')
+    .option('--format <format>')
+    .option('--design <look>')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.generateText({
       prompt: opts.prompt,
       slideshowType: opts.type,
@@ -569,6 +582,8 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       maxMode: Boolean(opts.max),
       effort: opts.effort,
       visualContext: opts.visualContextJson ? JSON.parse(opts.visualContextJson) : undefined,
+      format: opts.format,
+      design: opts.design,
     }), globals), buildOptions));
   slideshows.command('revise-text')
     .requiredOption('--instruction <text>')
@@ -587,6 +602,27 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     }), globals), buildOptions));
   slideshows.command('finalize').requiredOption('--slideshow-id <id>').option('--slides-json <json>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.finalize({ slideshowId: opts.slideshowId, slides: opts.slidesJson ? JSON.parse(opts.slidesJson) : undefined }), globals), buildOptions));
   slideshows.command('export-video').requiredOption('--slideshow-id <id>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.exportVideo(opts.slideshowId), globals), buildOptions));
+  slideshows.command('recreate')
+    .requiredOption('--tiktok-url <url>')
+    .option('--product-context-id <id>')
+    .option('--instructions <text>')
+    .option('--effort <effort>')
+    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.recreate({
+      tiktokUrl: opts.tiktokUrl,
+      productContextId: opts.productContextId,
+      instructions: opts.instructions,
+      effort: opts.effort,
+    }), globals), buildOptions));
+  slideshows.command('search-photos').argument('<query>').option('--source <source>').option('--cursor <cursor>').action((query, opts, command) => run(command, (client) => client.slideshows.searchPhotos(query, { source: opts.source, cursor: opts.cursor }), buildOptions));
+  slideshows.command('save-photos').requiredOption('--photos-json <json>').action((opts, command) => run(command, (client) => client.slideshows.savePhotos(JSON.parse(opts.photosJson)), buildOptions));
+  slideshows.command('formats').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.slideshows.listFormats({ cursor: opts.cursor }), buildOptions));
+  slideshows.command('save-format').requiredOption('--json-definition <json>').action((opts, command) => run(command, (client) => client.slideshows.saveFormat(JSON.parse(opts.jsonDefinition)), buildOptions));
+  slideshows.command('archive-format').requiredOption('--format-id <id>').action((opts, command) => run(command, (client) => client.slideshows.archiveFormat(opts.formatId), buildOptions));
+  slideshows.command('batch-create').requiredOption('--format-id <id>').requiredOption('--count <n>').action((opts, command) => run(command, (client) => client.slideshows.createBatch(opts.formatId, Number(opts.count)), buildOptions));
+  slideshows.command('batches').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.slideshows.listBatches({ cursor: opts.cursor }), buildOptions));
+  slideshows.command('batch').requiredOption('--batch-id <id>').action((opts, command) => run(command, (client) => client.slideshows.getBatch(opts.batchId), buildOptions));
+  slideshows.command('batch-retry').requiredOption('--batch-id <id>').requiredOption('--item-id <id>').action((opts, command) => run(command, (client) => client.slideshows.retryBatchItem(opts.batchId, opts.itemId), buildOptions));
+  slideshows.command('batch-exclude').requiredOption('--batch-id <id>').requiredOption('--item-id <id>').action((opts, command) => run(command, (client) => client.slideshows.excludeBatchItem(opts.batchId, opts.itemId), buildOptions));
 
   const imageGenerations = program.command('image-generations');
   imageGenerations.command('active').action((_, command) => run(command, (client) => client.imageGenerations.listActive(), buildOptions));
@@ -668,8 +704,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   mediaCollections.command('delete').requiredOption('--collection-id <id>').action((opts, command) => run(command, (client) => client.mediaCollections.delete(opts.collectionId), buildOptions));
 
   const community = program.command('community');
-  community.command('collections').option('--source <source>').option('--limit <n>').option('--offset <n>').action((opts, command) => run(command, (client) => client.community.listCollections({
-    source: opts.source,
+  community.command('collections').option('--limit <n>').option('--offset <n>').action((opts, command) => run(command, (client) => client.community.listCollections({
     limit: opts.limit ? Number(opts.limit) : undefined,
     offset: opts.offset ? Number(opts.offset) : undefined,
   }), buildOptions));
@@ -681,7 +716,15 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const productContexts = program.command('product-contexts');
   productContexts.command('list').action((_, command) => run(command, (client) => client.productContexts.list(), buildOptions));
   productContexts.command('suggest').requiredOption('--url <url>').action((opts, command) => run(command, (client) => client.productContexts.suggestFromUrl(opts.url), buildOptions));
-  productContexts.command('create').requiredOption('--name <name>').requiredOption('--description <text>').action((opts, command) => run(command, (client) => client.productContexts.create({ name: opts.name, description: opts.description }), buildOptions));
+  productContexts.command('create').requiredOption('--name <name>').requiredOption('--description <text>').option('--image-url <url>').action((opts, command) => run(command, (client) => client.productContexts.create({ name: opts.name, description: opts.description, imageUrl: opts.imageUrl }), buildOptions));
+  productContexts.command('update').requiredOption('--id <id>').option('--name <name>').option('--description <text>').option('--image-url <url>').option('--remove-image').action((opts, command) => run(command, (client) => client.productContexts.update(opts.id, {
+    name: opts.name,
+    description: opts.description,
+    ...(opts.removeImage ? { imageUrl: null } : opts.imageUrl ? { imageUrl: opts.imageUrl } : {}),
+  }), buildOptions));
+
+  const prompts = program.command('prompts');
+  prompts.command('save').requiredOption('--kind <kind>').requiredOption('--prompt <text>').action((opts, command) => run(command, (client) => client.prompts.save(opts.kind, opts.prompt), buildOptions));
 
   const trash = program.command('trash');
   trash.command('list').option('--limit <n>').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.trash.list({ limit: opts.limit ? Number(opts.limit) : undefined, cursor: opts.cursor }), buildOptions));
@@ -788,8 +831,13 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const validate = program.command('validate');
   validate.command('caption').argument('<text>').requiredOption('--platforms <items>').action((text, opts, command) => run(command, (client) => client.validate.caption(text, String(opts.platforms).split(',').map((item) => item.toUpperCase() as PlatformTarget['platform'])), buildOptions));
 
-  program.command('confirm').argument('<confirmationId>').action((confirmationId, _opts, command) => run(command, async (client) => {
-    const result = await client.raw.callTool('reelsfarm_confirm_action', { confirmationId });
+  // Each prepared action names its own confirmation tool (confirmationTool in the prepared result).
+  program.command('confirm').argument('<confirmationId>').requiredOption('--tool <confirmationTool>').action((confirmationId, opts, command) => run(command, async (client) => {
+    const tool = String(opts.tool);
+    if (!toolManifest.some((entry) => entry.name === tool && entry.confirmation)) {
+      throw new ReelsFarmValidationError(`--tool must be the confirmationTool from the prepared result, such as reelsfarm_confirm_generate_slideshow_text. Got: ${tool}`);
+    }
+    const result = await client.raw.callTool(tool, { confirmationId });
     return extractStructuredContent(result);
   }, buildOptions));
 

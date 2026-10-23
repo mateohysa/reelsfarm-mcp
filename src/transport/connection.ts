@@ -6,7 +6,7 @@ import {
   type StreamableHTTPClientTransportOptions,
 } from '@modelcontextprotocol/client';
 import type { ToolName } from '../generated/index.js';
-import { toolManifest, toolNames } from '../generated/index.js';
+import { getConfirmationToolName, toolManifest, toolNames } from '../generated/index.js';
 import { DEFAULT_MCP_SERVER_URL, DEFAULT_OPERATION_RECOVERY_TIMEOUT_MS, DEFAULT_PROFILE, DEFAULT_TIMEOUT_MS, SDK_NAME, SDK_VERSION } from '../constants.js';
 import { ReelsFarmAuthError, ReelsFarmError, ReelsFarmToolError, ReelsFarmValidationError, normalizeError, normalizeToolError } from '../errors.js';
 import type { JsonObject, McpOperationSnapshot, RawToolResult, ReelsFarmClientOptions } from '../types.js';
@@ -30,9 +30,14 @@ function isKnownReadOnlyTool(name: string): boolean {
   return toolsByName.get(name)?.readOnly === true;
 }
 
+/** A reelsfarm_confirm_<action> tool. A confirmation is single-use, so repeating it is safe. */
+function isConfirmationTool(name: string): boolean {
+  return toolsByName.get(name)?.confirmation === true;
+}
+
 export function isRetrySafeToolCall(name: string, args: JsonObject): boolean {
   return isKnownReadOnlyTool(name)
-    || (isMutationTool(name) && (name === 'reelsfarm_confirm_action' || typeof args.idempotencyKey === 'string'));
+    || (isMutationTool(name) && (isConfirmationTool(name) || typeof args.idempotencyKey === 'string'));
 }
 
 function isAmbiguousTransportError(error: unknown): boolean {
@@ -201,7 +206,7 @@ export class ReelsFarmConnection {
 
   private prepareArguments(name: string, args: JsonObject): JsonObject {
     if (!isMutationTool(name)) return args;
-    if (name === 'reelsfarm_confirm_action') {
+    if (isConfirmationTool(name)) {
       return this.options.dryRun ? { ...args, dryRun: true } : args;
     }
     const suppliedKey = typeof args.idempotencyKey === 'string' ? args.idempotencyKey.trim() : '';
@@ -228,10 +233,12 @@ export class ReelsFarmConnection {
   }
 
   private async maybeAutoConfirm<T extends object>(name: ToolName | string, result: RawToolResult<T>): Promise<RawToolResult<T>> {
-    if (!this.options.autoConfirm || this.options.dryRun || name === 'reelsfarm_confirm_action') return result;
-    const confirmationId = (result.structuredContent as { confirmationId?: unknown } | undefined)?.confirmationId;
-    if (typeof confirmationId !== 'string') return result;
-    return await this.callTool<T>('reelsfarm_confirm_action', { confirmationId });
+    if (!this.options.autoConfirm || this.options.dryRun || isConfirmationTool(String(name))) return result;
+    const prepared = result.structuredContent as { confirmationId?: unknown; confirmationTool?: unknown } | undefined;
+    if (typeof prepared?.confirmationId !== 'string') return result;
+    const confirmationTool = typeof prepared.confirmationTool === 'string' ? prepared.confirmationTool : getConfirmationToolName(String(name));
+    if (!confirmationTool) return result;
+    return await this.callTool<T>(confirmationTool, { confirmationId: prepared.confirmationId });
   }
 
   private async resolveRecoveredOperation<T extends object>(initial: RawToolResult<T>): Promise<RawToolResult<T>> {

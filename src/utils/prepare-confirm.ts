@@ -1,5 +1,5 @@
 import { ReelsFarmConfirmationError } from '../errors.js';
-import type { ToolName } from '../generated/index.js';
+import { getConfirmationToolName, type ToolName } from '../generated/index.js';
 import type { JsonObject, PreparedAction } from '../types.js';
 import { extractStructuredContent } from './result.js';
 
@@ -22,8 +22,15 @@ export async function prepareAndConfirm<T extends object>(
   if (!isPreparedAction(preparedOrExecuted)) return preparedOrExecuted;
   if (context.dryRun || !context.autoConfirm) return preparedOrExecuted;
 
+  // Each prepared operation has its own confirmation tool, named in the prepared result.
+  const confirmationTool = preparedOrExecuted.confirmationTool || getConfirmationToolName(preparedOrExecuted.sourceTool || prepareTool);
+  if (!confirmationTool) {
+    throw new ReelsFarmConfirmationError('The server prepared this action without naming its confirmation tool, so the SDK did not confirm it.', {
+      operationId: preparedOrExecuted.operationId,
+    });
+  }
   try {
-    return extractStructuredContent<T>(await context.callTool('reelsfarm_confirm_action', { confirmationId: preparedOrExecuted.confirmationId }));
+    return extractStructuredContent<T>(await context.callTool(confirmationTool, { confirmationId: preparedOrExecuted.confirmationId }));
   } catch (error) {
     throw new ReelsFarmConfirmationError(
       'Confirmation did not complete. The SDK will not prepare or execute a replacement action. Inspect the original operation or retry this confirmation ID.',

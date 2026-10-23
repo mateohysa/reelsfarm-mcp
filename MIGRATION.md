@@ -1,3 +1,31 @@
+# ReelsFarm MCP 3.9 migration
+
+SDK `3.9.0` requires ReelsFarm MCP contract `2026-10-23.1`.
+
+## Confirm each action with its own tool
+
+Servers since MCP 3.7 confirm a prepared action only through the tool named for
+it, such as `reelsfarm_confirm_generate_slideshow_text`. Clients can no longer
+call `reelsfarm_confirm_action`. SDK 3.6 still called it, so its confirmations
+fail, and `validateToolSurface: 'throw'` refuses to connect to the larger catalog.
+
+- `prepareAndConfirm`, `autoConfirm`, and every domain method use the prepared
+  result's `confirmationTool`. Nothing changes in code that only reads results.
+- If you confirm by hand, call `result.confirmationTool` with
+  `{ confirmationId: result.confirmationId }`, or use
+  `getConfirmationToolName(sourceTool)`.
+- The CLI takes the tool: `reelsfarm confirm <confirmationId> --tool <confirmationTool>`.
+  Agent-mode output includes `confirmation.tool` and the full `nextStep` command.
+
+## Other changes
+
+- `rf.slideshows.update(...)` accepts only `status: 'DRAFT'`. Use `finalize(...)`
+  to export.
+- `rf.community.listCollections(...)` no longer filters by `source`; each
+  collection still reports its own.
+- Slide `imageUrl` is optional only on an iMessage slide. Classic, tweet,
+  notebook, and magazine slides still need a photo.
+
 # ReelsFarm MCP 3.0 migration
 
 SDK `3.0.0` requires ReelsFarm MCP contract `2026-08-22.1`.
