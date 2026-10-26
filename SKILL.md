@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.9.0` with MCP contract `2026-10-23.1`.
+This skill targets SDK and server `3.9.2` with MCP contract `2026-10-26.1`.
 
 ## Install and Auth
 
