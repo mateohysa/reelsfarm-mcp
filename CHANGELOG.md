@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.9.2 - 2026-10-26
+
+- Match server 3.9.2 and contract `2026-10-26.1`. The tool list and inputs are
+  unchanged; client code needs no changes.
+- Server fixes since 3.9.0 that SDK calls now get:
+  - `rf.avatars.generate(...)`, product scenes and hook clip imports no longer fail
+    with "returned an invalid structured result" in Creator and Autopilot after
+    the job had started and was charged. Their results now include `createdAt`
+    (avatars, product scenes) or `total` (hook imports).
+  - `rf.imageGenerations.getJob(...)`, `listActive()` and conversations no longer
+    fail on GPT Image and Seedream jobs; `input.quality` is returned.
+  - `saveFormat` accepts `content.recreateUrl`, `finalize` keeps a sent slide
+    `design`, and `generateText` with a `format` and no `slideCount` uses the
+    format's slide count.
+
 ## 3.9.0 - 2026-10-23
 
 - Match server 3.9.0 and contract `2026-10-23.1`; track all 177 public tools.

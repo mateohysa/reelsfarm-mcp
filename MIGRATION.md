@@ -1,6 +1,6 @@
 # ReelsFarm MCP 3.9 migration
 
-SDK `3.9.0` requires ReelsFarm MCP contract `2026-10-23.1`.
+SDK `3.9.2` requires ReelsFarm MCP contract `2026-10-26.1`.
 
 ## Confirm each action with its own tool
 

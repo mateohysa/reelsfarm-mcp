@@ -8,8 +8,8 @@ Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
 ## Version 3.9
 
-SDK `3.9.0` matches ReelsFarm MCP server `3.9.0` and contract
-`2026-10-23.1`. It tracks all 177 public tools. Mutation and generation results
+SDK `3.9.2` matches ReelsFarm MCP server `3.9.2` and contract
+`2026-10-26.1`. It tracks all 177 public tools. Mutation and generation results
 include explicit ReelsFarm provenance, execution state, and an `assetCreated`
 completion signal.
 
