@@ -6,12 +6,16 @@
 
 Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
-## Version 3.9
+## Version 3.11
 
-SDK `3.9.2` matches ReelsFarm MCP server `3.9.2` and contract
-`2026-10-26.1`. It tracks all 177 public tools. Mutation and generation results
+SDK `3.11.0` matches ReelsFarm MCP server `3.11.0` and contract
+`2026-10-30.1`. It tracks all 177 public tools. Mutation and generation results
 include explicit ReelsFarm provenance, execution state, and an `assetCreated`
 completion signal.
+
+Server 3.11 lists the same tools in about a quarter of the old size.
+Confirmation tools take only `confirmationId`, so a dry-run client no longer
+calls them. Read [MIGRATION.md](./MIGRATION.md) for the other changes.
 
 Version 3.9 confirms each prepared action with its own confirmation tool,
 because servers since 3.7 no longer accept `reelsfarm_confirm_action` from
@@ -61,8 +65,10 @@ connection policy without an extra SDK approval step.
 Use `nano-banana-2-1` for Nano Banana 2.1. The legacy `nano-banana-2-pro` key
 also uses 2.1. Use `gpt-image-2.5-sunburst` as the public GPT Image 2.5 model
 key. GPT Image 2 and GPT Image 2.5 accept `low`, `medium`, or `high` quality.
-Seedream 5.0 Pro accepts `basic` or `high`. Omit `quality` for Nano Banana
-models.
+Seedream 5.0 Pro accepts `basic` or `high`. FLUX 3 (`flux-3`) accepts `basic`
+(1K), `high` (about 2 megapixels), `ultra` (2K), or `max` (4K); bigger sizes
+cost more credits, and the prepared result's estimate follows the size. Omit
+`quality` for Nano Banana models.
 
 ## Job waits and publishing discovery
 
@@ -331,7 +337,8 @@ a confirmation is returned, review the summary, then run the `nextStep` it gives
 `reelsfarm confirm <confirmationId> --tool <confirmationTool> --agent`. Pass `--yes` only
 when the application should automatically confirm Review-mode actions.
 `--dry-run` is sent to the server and cannot mutate in Review, Creator, or
-Autopilot, even when combined with `--yes`.
+Autopilot, even when combined with `--yes`. `reelsfarm confirm` refuses
+`--dry-run`, because a confirmation always runs the prepared action.
 
 The server connection policy is authoritative for direct writes. Creator may
 create and edit content but cannot publish or activate automations. Autopilot
@@ -355,7 +362,10 @@ original durable operation when the server returns one:
 
 Structured errors distinguish authentication, insufficient scope, policy
 denial, rate limiting, idempotency conflict, operation-in-progress, and plan
-limits. A rejected automation request is a `ReelsFarmValidationError` with code
+limits. An account without a plan or trial can connect and read; anything that
+creates, changes, publishes, or deletes throws a `ReelsFarmPlanLimitError` with
+code `SUBSCRIPTION_REQUIRED` and a `dashboardUrl` for choosing a plan. A
+rejected automation request is a `ReelsFarmValidationError` with code
 `INVALID_AUTOMATION`. An active video job conflict is a retryable
 `ReelsFarmToolError` with code `VIDEO_JOB_IN_PROGRESS`. OAuth profiles retain
 rotating refresh tokens in the existing protected profile token store until

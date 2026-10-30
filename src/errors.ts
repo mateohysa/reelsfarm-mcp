@@ -62,7 +62,9 @@ function metaString(meta: JsonObject | undefined, key: string): string | undefin
 }
 
 export function normalizeToolError(message: string, toolName: string, meta?: JsonObject): ReelsFarmError {
-  const code = metaString(meta, 'mcp/error_code');
+  // An account without a plan or trial can only read: other tools return auth_error subscription_required and a plans link.
+  const code = metaString(meta, 'mcp/error_code')
+    ?? (metaString(meta, 'mcp/auth_error') === 'subscription_required' ? 'SUBSCRIPTION_REQUIRED' : undefined);
   const operationId = metaString(meta, 'mcp/operation_id');
   const dashboardUrl = metaString(meta, 'mcp/dashboard_url');
   const options: ReelsFarmErrorOptions = { code, operationId, dashboardUrl };
@@ -87,6 +89,7 @@ export function normalizeToolError(message: string, toolName: string, meta?: Jso
       return new ReelsFarmOperationInProgressError(message, options);
     case 'PLAN_LIMIT_REACHED':
     case 'INSUFFICIENT_CREDITS':
+    case 'SUBSCRIPTION_REQUIRED':
       return new ReelsFarmPlanLimitError(message, options);
     case 'RATE_LIMITED':
       return new ReelsFarmRateLimitError(message, options);

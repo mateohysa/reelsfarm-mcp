@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildProgram } from '../../cli/index.js';
-import { ReelsFarmAuthError, ReelsFarmRateLimitError, ReelsFarmToolError, type ReelsFarmClient, type ReelsFarmClientOptions } from '../../src/index.js';
+import { ReelsFarmAuthError, ReelsFarmConfirmationError, ReelsFarmPlanLimitError, ReelsFarmRateLimitError, ReelsFarmToolError, type ReelsFarmClient, type ReelsFarmClientOptions } from '../../src/index.js';
 
 class MemoryStream {
   value = '';
@@ -200,6 +200,46 @@ describe('cli', () => {
     expect(result.json).toMatchObject({
       ok: false,
       error: { code: 'VIDEO_JOB_IN_PROGRESS', retryable: true, nextStep: expect.stringContaining('active video job') },
+    });
+  });
+
+  it('points an account without a plan to the plans page in agent mode', async () => {
+    const result = await runCli(['--agent', 'videos', 'generate', '--prompt', 'First video'], () => createClient({
+      videos: {
+        generateVideo: async () => {
+          throw new ReelsFarmPlanLimitError('This needs a ReelsFarm plan.', {
+            code: 'SUBSCRIPTION_REQUIRED',
+            dashboardUrl: 'https://reelsfarm.com/prompts/new?plans=open',
+          });
+        },
+      },
+    }));
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({
+      ok: false,
+      error: {
+        code: 'SUBSCRIPTION_REQUIRED',
+        dashboardUrl: 'https://reelsfarm.com/prompts/new?plans=open',
+        nextStep: expect.stringContaining('https://reelsfarm.com/prompts/new?plans=open'),
+      },
+    });
+  });
+
+  it('tells dry-run agents to confirm without --dry-run', async () => {
+    const result = await runCli(['--agent', '--dry-run', 'confirm', 'conf_123', '--tool', 'reelsfarm_confirm_generate_slideshow_text'], () => createClient({
+      raw: {
+        callTool: async () => {
+          throw new ReelsFarmConfirmationError('Dry-run mode does not confirm actions.', { code: 'DRY_RUN_CONFIRMATION' });
+        },
+        listTools: async () => [],
+      },
+    }));
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({
+      ok: false,
+      error: { code: 'DRY_RUN_CONFIRMATION', nextStep: expect.stringContaining('without --dry-run') },
     });
   });
 

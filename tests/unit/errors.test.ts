@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ReelsFarmIdempotencyError,
+  ReelsFarmPlanLimitError,
   ReelsFarmPolicyError,
   ReelsFarmRateLimitError,
   ReelsFarmToolError,
@@ -42,6 +43,15 @@ describe('errors', () => {
     });
     expect(error).toBeInstanceOf(ReelsFarmValidationError);
     expect(error.code).toBe('INVALID_AUTOMATION');
+  });
+
+  it('classifies a write from an account without a plan as a plan error with the plans link', () => {
+    const error = normalizeToolError('This needs a ReelsFarm plan.', 'reelsfarm_prepare_generate_avatar', {
+      'mcp/auth_error': ['subscription_required'],
+      'mcp/dashboard_url': ['https://reelsfarm.com/prompts/new?plans=open'],
+    });
+    expect(error).toBeInstanceOf(ReelsFarmPlanLimitError);
+    expect(error).toMatchObject({ code: 'SUBSCRIPTION_REQUIRED', dashboardUrl: 'https://reelsfarm.com/prompts/new?plans=open' });
   });
 
   it('marks an active video job conflict as retryable', () => {
