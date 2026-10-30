@@ -31,6 +31,21 @@ describe('connection safety', () => {
     expect(isRetrySafeToolCall('reelsfarm_confirm_action', { confirmationId: 'c1' })).toBe(false);
   });
 
+  it('refuses confirmation tools in dry-run mode without calling the server', async () => {
+    const connection = new ReelsFarmConnection({ serverUrl: 'https://mcp.reelsfarm.com/mcp', profile: 'test', apiKey: 'rf_test', dryRun: true });
+    let connected = false;
+    (connection as unknown as { getClient: () => Promise<never> }).getClient = async () => {
+      connected = true;
+      throw new Error('should not connect');
+    };
+
+    await expect(connection.callTool('reelsfarm_confirm_generate_avatar', { confirmationId: 'c1' })).rejects.toMatchObject({
+      name: 'ReelsFarmConfirmationError',
+      code: 'DRY_RUN_CONFIRMATION',
+    });
+    expect(connected).toBe(false);
+  });
+
   it('requests narrow OAuth scopes and rejects unknown scopes', () => {
     expect(normalizeOAuthScopes(['content:read', 'content:generate', 'content:read'])).toEqual([
       'content:read',

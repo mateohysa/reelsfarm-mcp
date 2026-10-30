@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.9.2` with MCP contract `2026-10-26.1`.
+This skill targets SDK and server `3.11.0` with MCP contract `2026-10-30.1`.
 
 ## Install and Auth
 
@@ -83,7 +83,8 @@ Error:
 - Use `--yes` only to auto-confirm a Review-mode prepared action. It does not
   grant capabilities or override the server connection mode.
 - `--dry-run` always prevents server execution, including in Creator or
-  Autopilot and when combined with `--yes`.
+  Autopilot and when combined with `--yes`. `reelsfarm confirm` refuses
+  `--dry-run`, because a confirmation always runs the prepared action.
 - Every mutation gets a stable idempotency key. Reuse
   `--idempotency-key <key>` only when retrying the same logical action with the
   same arguments.
@@ -130,7 +131,8 @@ reelsfarm confirm <confirmationId> --tool <confirmation.tool> --agent
 ```
 
 Use `--model nano-banana-2-1` for Nano Banana 2.1. Omit `--quality` for Nano
-Banana models.
+Banana models. Use `--model flux-3` for FLUX 3 with `--quality basic`, `high`,
+`ultra` (2K), or `max` (4K); bigger sizes cost more credits.
 
 To animate that avatar, wait for the avatar job to report `COMPLETED`. Pass its
 returned ReelsFarm `avatar.imageUrl` to hook generation with a Seedance or Veo

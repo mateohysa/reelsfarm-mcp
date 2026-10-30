@@ -36,6 +36,7 @@ function serializeDate(value: string | Date): string {
 }
 
 export class PostsDomain extends DomainBase {
+  /** Scheduled posts, 20 per page unless `limit` says otherwise (up to 100). */
   list(options: { limit?: number; cursor?: string; status?: string; startDate?: string; endDate?: string; platform?: string; accountId?: string } = {}) {
     return this.call('reelsfarm_list_scheduled_posts', options);
   }

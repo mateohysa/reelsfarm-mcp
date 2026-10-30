@@ -171,15 +171,19 @@ function errorEnvelope(error: unknown): JsonObject {
       : 'Poll the original operation instead of preparing another action.';
   } else if (error instanceof ReelsFarmPlanLimitError) {
     code = error.code || 'PLAN_LIMIT_REACHED';
-    nextStep = 'Review credits and plan limits in ReelsFarm.';
+    nextStep = code === 'SUBSCRIPTION_REQUIRED'
+      ? `Ask the user to choose a ReelsFarm plan${error.dashboardUrl ? ` at ${error.dashboardUrl}` : ''}, then rerun this command.`
+      : 'Review credits and plan limits in ReelsFarm.';
   } else if (error instanceof ReelsFarmValidationError || error instanceof SyntaxError || lower.includes('invalid')) {
     code = 'VALIDATION_ERROR';
     nextStep = 'Run reelsfarm agent commands to inspect required flags and examples.';
   } else if (error instanceof ReelsFarmConfirmationError) {
     code = error.code || 'CONFIRMATION_FAILED';
-    nextStep = error.operationId
-      ? `Inspect the original operation with reelsfarm operations get --id ${error.operationId} --agent.`
-      : 'Retry the same confirmation ID. Do not prepare a replacement action automatically.';
+    nextStep = code === 'DRY_RUN_CONFIRMATION'
+      ? 'Run reelsfarm confirm without --dry-run once the user approves the action.'
+      : error.operationId
+        ? `Inspect the original operation with reelsfarm operations get --id ${error.operationId} --agent.`
+        : 'Retry the same confirmation ID. Do not prepare a replacement action automatically.';
   } else if (error instanceof ReelsFarmTimeoutError) {
     code = 'TIMEOUT';
     nextStep = 'Retry with --timeout <ms> or check the job status command.';

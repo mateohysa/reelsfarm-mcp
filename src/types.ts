@@ -159,8 +159,10 @@ export type AvatarModel =
   | 'nano-banana-2-1'
   | 'gpt-image-2'
   | 'gpt-image-2.5-sunburst'
-  | 'seedream-5-pro';
-export type AvatarGenerationQuality = 'low' | 'medium' | 'high' | 'basic';
+  | 'seedream-5-pro'
+  | 'flux-3';
+/** `ultra` (2K) and `max` (4K) are FLUX 3 sizes; GPT Image and Seedream treat them as `high`. */
+export type AvatarGenerationQuality = 'low' | 'medium' | 'high' | 'basic' | 'ultra' | 'max';
 export type AvatarStyleMode = 'default' | 'pinterest' | 'linkedin';
 export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
 export type HookGenerationModel = 'veo-3.1-fast' | 'veo-3.1' | 'seedance-2-fast' | 'seedance-2' | 'seedance-2.5';

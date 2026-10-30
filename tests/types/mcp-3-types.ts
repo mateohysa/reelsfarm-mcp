@@ -3,6 +3,7 @@ import type {
   AutomationImages,
   SlideshowSlideInput,
   AutomationTikTokSettings,
+  AvatarGenerationParams,
   ImageTemplateCategory,
   PlatformTarget,
   SlideshowEffort,
@@ -87,6 +88,13 @@ export const automationPhotos: AutomationImages = {
   photoSources: { pinterest: true, tumblr: false, pexels: false, collections: true },
   generatedPhotos: { count: 1, fromSlide: 2, toSlide: 3, model: 'seedream-5-pro' },
 };
+
+export const fluxPhotos: AutomationImages = { generatedPhotos: { count: 2, fromSlide: 1, toSlide: 2, model: 'flux-3' } };
+
+export const fluxAvatar: AvatarGenerationParams = { prompt: 'Creator selfie style', model: 'flux-3', quality: 'max', aspectRatio: '9:16' };
+
+// @ts-expect-error FLUX 3 sizes are basic, high, ultra and max.
+export const unknownQuality: AvatarGenerationParams = { prompt: 'Creator selfie style', model: 'flux-3', quality: '8k' };
 
 // @ts-expect-error The Look is one of the six choices.
 export const unknownLook: AutomationContent = { topic: 'other', slidesCount: 4, design: 'polaroid' };

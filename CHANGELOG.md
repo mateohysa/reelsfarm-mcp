@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.11.0 - 2026-10-31
+
+- Match server 3.11.0 and contract `2026-10-30.1`. The 177 tool names are
+  unchanged; the server lists them in about a quarter of the old size.
+- Add the FLUX 3 image model (`flux-3`) to `AvatarModel` and automation
+  `generatedPhotos.model`, and its `ultra` (2K) and `max` (4K) sizes to
+  `AvatarGenerationQuality`.
+- Dry-run mode no longer calls confirmation tools. They take only
+  `confirmationId` and always run the prepared action, and the server rejects
+  `dryRun` on them. The SDK throws `ReelsFarmConfirmationError` with code
+  `DRY_RUN_CONFIRMATION` instead, and `reelsfarm confirm --dry-run` tells agents
+  to confirm without `--dry-run`.
+- A write from an account without a plan or trial throws
+  `ReelsFarmPlanLimitError` with code `SUBSCRIPTION_REQUIRED` and the plans link
+  in `dashboardUrl`. Since server 3.10 such accounts can connect and read.
+- Server changes since 3.9.2 that SDK calls get:
+  - `rf.slideshows.list(...)` rows leave out `settings.revisionHistory`; `get`
+    still returns it. `update` keeps the saved revision history when `settings`
+    leaves it out; before, the history was deleted.
+  - `rf.posts.list(...)` returns 20 posts per page by default (was 50), and rows
+    no longer carry `createdAt` and `updatedAt`.
+  - `rf.social.list()` and `listConnected()` no longer show TikTok and YouTube
+    accounts as expired between posts: those renew their token when they
+    publish, so they report `expired: false` and `expiresAt: null`.
+  - Result text is compact JSON; `structuredContent` is unchanged.
+
 ## 3.9.2 - 2026-10-26
 
 - Match server 3.9.2 and contract `2026-10-26.1`. The tool list and inputs are

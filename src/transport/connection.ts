@@ -8,7 +8,7 @@ import {
 import type { ToolName } from '../generated/index.js';
 import { getConfirmationToolName, toolManifest, toolNames } from '../generated/index.js';
 import { DEFAULT_MCP_SERVER_URL, DEFAULT_OPERATION_RECOVERY_TIMEOUT_MS, DEFAULT_PROFILE, DEFAULT_TIMEOUT_MS, SDK_NAME, SDK_VERSION } from '../constants.js';
-import { ReelsFarmAuthError, ReelsFarmError, ReelsFarmToolError, ReelsFarmValidationError, normalizeError, normalizeToolError } from '../errors.js';
+import { ReelsFarmAuthError, ReelsFarmConfirmationError, ReelsFarmError, ReelsFarmToolError, ReelsFarmValidationError, normalizeError, normalizeToolError } from '../errors.js';
 import type { JsonObject, McpOperationSnapshot, RawToolResult, ReelsFarmClientOptions } from '../types.js';
 import { loadProfile } from '../auth/config-store.js';
 import { ReelsFarmOAuthProvider } from '../auth/oauth-provider.js';
@@ -207,7 +207,14 @@ export class ReelsFarmConnection {
   private prepareArguments(name: string, args: JsonObject): JsonObject {
     if (!isMutationTool(name)) return args;
     if (isConfirmationTool(name)) {
-      return this.options.dryRun ? { ...args, dryRun: true } : args;
+      // A confirmation tool takes only confirmationId and always runs the prepared action, so dry-run mode never calls one.
+      if (this.options.dryRun) {
+        throw new ReelsFarmConfirmationError(
+          `Dry-run mode does not confirm actions: ${name} runs the prepared action. Confirm without dryRun to run it.`,
+          { code: 'DRY_RUN_CONFIRMATION' },
+        );
+      }
+      return args;
     }
     const suppliedKey = typeof args.idempotencyKey === 'string' ? args.idempotencyKey.trim() : '';
     const idempotencyKey = suppliedKey || this.options.idempotencyKeyFactory?.() || randomUUID();

@@ -1,3 +1,24 @@
+# ReelsFarm MCP 3.11 migration
+
+SDK `3.11.0` requires ReelsFarm MCP contract `2026-10-30.1`. Tool names are
+unchanged, and most code needs no changes.
+
+- Confirmation tools take only `confirmationId`, and the server rejects one sent
+  with `dryRun`. A dry-run client now throws `ReelsFarmConfirmationError` with
+  code `DRY_RUN_CONFIRMATION` instead of calling a confirmation tool. Confirm
+  with a client that is not in dry-run mode.
+- `rf.slideshows.list(...)` rows leave out `settings.revisionHistory`. Read one
+  slideshow with `rf.slideshows.get(...)` for its revisions.
+  `rf.slideshows.update(...)` keeps the saved history when `settings` leaves it
+  out.
+- `rf.posts.list(...)` returns 20 posts per page unless `limit` says otherwise
+  (up to 100); it was 50. Rows no longer carry `createdAt` and `updatedAt`.
+- Accounts without a plan or trial can connect and read. Anything that creates,
+  changes, publishes, or deletes throws `ReelsFarmPlanLimitError` with code
+  `SUBSCRIPTION_REQUIRED` and a `dashboardUrl` for choosing a plan.
+- Result text is compact JSON. `structuredContent`, which the SDK returns, is
+  unchanged.
+
 # ReelsFarm MCP 3.9 migration
 
 SDK `3.9.2` requires ReelsFarm MCP contract `2026-10-26.1`.

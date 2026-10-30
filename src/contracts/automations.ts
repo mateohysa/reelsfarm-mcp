@@ -77,7 +77,7 @@ export interface AutomationGeneratedPhotos {
   count: number;
   fromSlide: number;
   toSlide: number;
-  model?: 'nano-banana-pro' | 'nano-banana-2-1' | 'gpt-image-2' | 'gpt-image-2.5-sunburst' | 'seedream-5-pro' | null;
+  model?: 'nano-banana-pro' | 'nano-banana-2-1' | 'gpt-image-2' | 'gpt-image-2.5-sunburst' | 'seedream-5-pro' | 'flux-3' | null;
 }
 
 export interface AutomationImages {

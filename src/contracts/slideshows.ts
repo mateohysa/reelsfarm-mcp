@@ -174,6 +174,7 @@ export interface SlideshowSettings {
   videoTransition?: SlideshowVideoTransition;
   aspectRatio?: SlideshowAspectRatio;
   music?: SlideshowMusicSettings | null;
+  /** Left out of list results; `get` returns it. An update whose settings leave it out keeps the saved history. */
   revisionHistory?: SlideshowRevision[];
   activeRevisionId?: string | null;
 }
