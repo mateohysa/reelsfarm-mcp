@@ -187,7 +187,14 @@ export type VideoGenerationModel =
   | 'veo-3.1-fast'
   | 'veo-3.1'
   | 'gemini-omni-1.1-flash';
-export type VideoAspectRatio = '9:16' | '16:9' | '1:1';
+/** Seedance models make all six; Veo and Omni make 9:16 and 16:9. */
+export type VideoAspectRatio = '9:16' | '16:9' | '1:1' | '3:4' | '4:3' | '21:9';
+/** Camera move for a whole video clip, on every model. */
+export type VideoCameraMove = 'static' | 'handheld' | 'push_in' | 'pull_back' | 'pan' | 'orbit' | 'follow' | 'drone_rise';
+/** Look and light of a video clip, on every model. */
+export type VideoLook = 'phone_ugc' | 'studio_product' | 'golden_hour' | 'cinematic' | 'flash_night' | 'vintage_film';
+/** One continuous shot, or two or three shots joined by hard cuts (Seedance, 8 seconds or more). */
+export type VideoShots = 'one' | 'cuts';
 export type VideoResolution = '720p' | '1080p';
 /** Videos library category. People also includes avatar hooks and AI Clone videos. */
 export type VideoCategory = 'people' | 'product' | 'scenes';

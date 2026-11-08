@@ -9,6 +9,8 @@ import type {
   SlideshowEffort,
   SlideshowSettings,
   VideoGenerationParams,
+  RecreateSlideshowParams,
+  ProductContextDetails,
 } from '../../src/index.js';
 
 const connectionId = '22222222-2222-4222-8222-222222222222';
@@ -100,3 +102,19 @@ export const unknownQuality: AvatarGenerationParams = { prompt: 'Creator selfie 
 export const unknownLook: AutomationContent = { topic: 'other', slidesCount: 4, design: 'polaroid' };
 
 export const reactionVideo: VideoGenerationParams = { prompt: 'She says "wdym"', firstFrameUrl: '/api/assets/user-generated?key=user/frame.png', motionPreset: 'shocked', naturalSpeech: false };
+
+export const styledVideo: VideoGenerationParams = { prompt: 'A latte on a cafe table', aspectRatio: '21:9', camera: 'orbit', look: 'golden_hour', shots: 'cuts', durationSeconds: 8, improvePrompt: false };
+
+// @ts-expect-error The camera move is one of the eight choices.
+export const unknownCamera: VideoGenerationParams = { prompt: 'A latte', camera: 'zoom' };
+
+export const recreateFromLibrary: RecreateSlideshowParams = { slideshowIdeaId: '0123456789abcdef0123', productContextId: 'pc_1' };
+export const recreateFromTikTok: RecreateSlideshowParams = { tiktokUrl: 'https://www.tiktok.com/@a/photo/1' };
+
+// @ts-expect-error Give tiktokUrl or slideshowIdeaId, not both.
+export const recreateFromBoth: RecreateSlideshowParams = { tiktokUrl: 'https://www.tiktok.com/@a/photo/1', slideshowIdeaId: '0123456789abcdef0123' };
+
+// @ts-expect-error Recreate needs tiktokUrl or slideshowIdeaId.
+export const recreateFromNothing: RecreateSlideshowParams = { productContextId: 'pc_1' };
+
+export const productWithPhotos: ProductContextDetails = { name: 'Glow serum', photoUrls: ['/api/assets/user-uploads?key=u/products/a.png', '/api/assets/user-uploads?key=u/products/b.png'] };

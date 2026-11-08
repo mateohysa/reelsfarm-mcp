@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.11.0` with MCP contract `2026-10-30.1`.
+This skill targets SDK and server `3.14.0` with MCP contract `2026-11-08.1`.
 
 ## Install and Auth
 
@@ -177,8 +177,18 @@ in `reelsfarm account pricing --agent` before you choose.
 combine frames with references. Seedance models alone accept video and audio
 references. Use owned ReelsFarm asset URLs only.
 
-One video job runs at a time per account across hooks, AI Clone, and the
-Videos workbench. The error code `VIDEO_JOB_IN_PROGRESS` names the active job.
+A short prompt is enough: by default it is rewritten into the form the model
+follows best, keeping every detail and spoken word (`videos status` returns it
+as `improvedPrompt`). Add `--camera` (`static`, `handheld`, `push_in`,
+`pull_back`, `pan`, `orbit`, `follow`, `drone_rise`), `--look` (`phone_ugc`,
+`studio_product`, `golden_hour`, `cinematic`, `flash_night`, `vintage_film`) or
+`--shots cuts` (Seedance, 8 seconds or more) only when the user asks for them.
+`--look` does not work with `--first-frame-url`, and none of the three works
+with `--motion-preset`. `--no-improve-prompt --no-natural-speech` sends the
+prompt exactly as written.
+
+One video job runs at a time per account across hooks and the Videos
+workbench. The error code `VIDEO_JOB_IN_PROGRESS` names the active job.
 Poll that job until it finishes, then run the command again. Do not start a
 replacement while the job is still running.
 
@@ -262,12 +272,6 @@ reelsfarm hooks import-capabilities --agent
 reelsfarm hooks import-clips \
   --items-json '[{"url":"https://youtube.com/shorts/example","start":"0","length":"5"}]' \
   --agent
-```
-
-Search AI Clone voices before generation:
-
-```bash
-reelsfarm ai-clones voices --search warm --category professional --agent
 ```
 
 Schedule existing content:

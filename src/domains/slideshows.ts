@@ -56,15 +56,21 @@ export interface SlideshowRevisionSlide {
   design?: SlideDesign | null;
 }
 
-export interface RecreateSlideshowParams extends MutationOptions {
-  /** Link to a public TikTok photo slideshow. */
-  tiktokUrl: string;
+interface RecreateSlideshowOptions extends MutationOptions {
   /** The product the new slideshow is about. Its photo goes on slides where the original shows its own product. */
   productContextId?: string;
   /** What should change, such as "use a wedding cake instead". */
   instructions?: string;
   effort?: SlideshowEffort;
 }
+
+/** Recreate from a TikTok link, or from a Slideshow Ideas library slideshow by its ID. Give one of the two. */
+export type RecreateSlideshowParams = RecreateSlideshowOptions & (
+  /** Link to a public TikTok photo slideshow. */
+  | { tiktokUrl: string; slideshowIdeaId?: never }
+  /** The 20-character ID of a Slideshow Ideas library slideshow. */
+  | { slideshowIdeaId: string; tiktokUrl?: never }
+);
 
 /** A reusable slideshow format for batches, with the same fields as an automation. */
 export interface SlideshowFormatParams extends MutationOptions {

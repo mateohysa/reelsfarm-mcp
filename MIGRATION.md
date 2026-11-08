@@ -1,3 +1,16 @@
+# ReelsFarm MCP 3.14 migration
+
+SDK `3.14.0` requires ReelsFarm MCP contract `2026-11-08.1`. Tool names are
+unchanged, and most code needs no changes.
+
+- `RecreateSlideshowParams` is now a type that takes `tiktokUrl` or
+  `slideshowIdeaId`, not an interface. Code that extends it with `interface ...
+  extends RecreateSlideshowParams` must use an intersection type instead.
+- Since server 3.12, video prompts are rewritten by default (`improvePrompt`),
+  and `naturalSpeech: false` keeps only the delivery of spoken lines. To send a
+  prompt exactly as written, set both `improvePrompt` and `naturalSpeech` to
+  `false`.
+
 # ReelsFarm MCP 3.11 migration
 
 SDK `3.11.0` requires ReelsFarm MCP contract `2026-10-30.1`. Tool names are
