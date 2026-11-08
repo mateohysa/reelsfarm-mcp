@@ -7,9 +7,12 @@ import type {
   MutationOptions,
   PageOptions,
   VideoAspectRatio,
+  VideoCameraMove,
   VideoCategory,
+  VideoLook,
   VideoGenerationModel,
   VideoResolution,
+  VideoShots,
 } from '../types.js';
 import type { SlideshowVideoArtifact } from '../contracts/slideshows.js';
 import { ReelsFarmJob } from '../jobs/job.js';
@@ -36,7 +39,7 @@ export interface VideoGenerationParams extends MutationOptions {
   model?: VideoGenerationModel;
   /** 4, 6, 8, 10, 12, or 15. Each model supports a subset. Defaults to 4. */
   durationSeconds?: number;
-  /** Defaults to 9:16. 1:1 is available only with Seedance models. */
+  /** Defaults to 9:16. 1:1, 3:4, 4:3 and 21:9 are available only with Seedance models. */
   aspectRatio?: VideoAspectRatio;
   /** Only gemini-omni-1.1-flash offers a choice. Omit it to use the model resolution. */
   resolution?: VideoResolution;
@@ -58,9 +61,22 @@ export interface VideoGenerationParams extends MutationOptions {
   /**
    * With includeAudio and someone speaking, rewrite the prompt so the voice sounds like a real person: a
    * tone and an action per line, the sound of the place, a still close shot for lip sync. The spoken words
-   * never change. Defaults to true; false sends the prompt exactly as written.
+   * never change. Defaults to true; false keeps the delivery of spoken lines as written. To send the whole
+   * prompt exactly as written, set both improvePrompt and naturalSpeech to false.
    */
   naturalSpeech?: boolean;
+  /**
+   * Rewrite the prompt into the form the model follows best: one action that fits the clip length, the place,
+   * the look and its light, the shot and one camera move, and the sound with includeAudio. Every detail and
+   * spoken word stays. Defaults to true. The status returns the rewritten prompt as improvedPrompt.
+   */
+  improvePrompt?: boolean;
+  /** Camera move for the whole clip. It wins over camera words in the prompt. Not with motionPreset. */
+  camera?: VideoCameraMove;
+  /** Look and light. It wins over look words in the prompt. Not with firstFrameUrl or motionPreset. */
+  look?: VideoLook;
+  /** cuts makes two or three shots joined by hard cuts; it needs a Seedance model and 8 seconds or more. Not with motionPreset. */
+  shots?: VideoShots;
   /** Up to three owned ReelsFarm image URLs that guide the subject, product, scene, or style. */
   referenceImageUrls?: string[];
   /** Up to one owned ReelsFarm video URL. Seedance models only. */
@@ -76,6 +92,8 @@ export interface VideoGenerationStatus extends JsonObject {
   jobId: string;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   prompt: string | null;
+  /** The rewritten prompt the model got, or null when the prompt was sent as written. */
+  improvedPrompt: string | null;
   model: VideoGenerationModel | null;
   durationSeconds: number | null;
   aspectRatio: VideoAspectRatio | null;

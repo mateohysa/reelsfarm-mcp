@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.14.0 - 2026-11-08
+
+- Match server 3.14.0 and contract `2026-11-08.1`. The 177 tool names are
+  unchanged.
+- Videos (server 3.12 and 3.14): `rf.videos.generateVideo(...)` takes
+  `improvePrompt` (default `true`: the prompt is rewritten into the form the
+  model follows best), `camera`, `look` and `shots` (`VideoCameraMove`,
+  `VideoLook`, `VideoShots`). `VideoAspectRatio` adds `3:4`, `4:3` and `21:9`
+  for Seedance models. The status returns `improvedPrompt`. `naturalSpeech:
+  false` now keeps only the delivery of spoken lines; set both to `false` to
+  send a prompt exactly as written. CLI: `videos generate --camera --look
+  --shots --no-improve-prompt`.
+- Recreate (server 3.13): `rf.slideshows.recreate(...)` takes
+  `slideshowIdeaId` (a Slideshow Ideas library slideshow) instead of
+  `tiktokUrl`; give one of the two. A completed job returns each slide's
+  `imageUrl`. CLI: `slideshows recreate --slideshow-idea-id`.
+- Products (server 3.14): a product has a name, an optional `description` and
+  up to 6 photos. `create` and `update` take `photoUrls` (in order; on update
+  it replaces all photos), `list()` returns `photos` and `describing`, and
+  `suggestFromUrl` also returns `photos`. `imageUrl` still works for one photo.
+  CLI: `product-contexts create|update --photo-urls`, and `--description` is
+  optional.
+- The manifest check skips the Face Swap tools, which the server still lists
+  but leaves out of its public reference while the feature is turned off. The
+  SDK keeps them, so strict tool-surface checks keep passing.
+
 ## 3.11.0 - 2026-10-31
 
 - Match server 3.11.0 and contract `2026-10-30.1`. The 177 tool names are

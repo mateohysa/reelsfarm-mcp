@@ -531,6 +531,10 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--conversation-id <id>')
     .option('--motion-preset <preset>')
     .option('--no-natural-speech', 'Send spoken lines exactly as written')
+    .option('--no-improve-prompt', 'Send the prompt without the rewrite')
+    .option('--camera <move>', 'static, handheld, push_in, pull_back, pan, orbit, follow or drone_rise')
+    .option('--look <look>', 'phone_ugc, studio_product, golden_hour, cinematic, flash_night or vintage_film')
+    .option('--shots <shots>', 'one, or cuts (Seedance, 8 seconds or more)')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.videos.generateVideo({
       prompt: opts.prompt,
       model: opts.model,
@@ -547,8 +551,12 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       referenceAudioUrls: opts.referenceAudioUrl ? [opts.referenceAudioUrl] : undefined,
       conversationId: opts.conversationId,
       motionPreset: opts.motionPreset,
-      // Natural speech is on by default; only turning it off is sent.
+      camera: opts.camera,
+      look: opts.look,
+      shots: opts.shots,
+      // Natural speech and the prompt rewrite are on by default; only turning them off is sent.
       ...(opts.naturalSpeech === false ? { naturalSpeech: false } : {}),
+      ...(opts.improvePrompt === false ? { improvePrompt: false } : {}),
     }), globals), buildOptions));
   videos.command('status').requiredOption('--job-id <id>').action((opts, command) => run(command, (client) => client.videos.getGenerationStatus(opts.jobId), buildOptions));
 
@@ -607,16 +615,20 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   slideshows.command('finalize').requiredOption('--slideshow-id <id>').option('--slides-json <json>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.finalize({ slideshowId: opts.slideshowId, slides: opts.slidesJson ? JSON.parse(opts.slidesJson) : undefined }), globals), buildOptions));
   slideshows.command('export-video').requiredOption('--slideshow-id <id>').action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.exportVideo(opts.slideshowId), globals), buildOptions));
   slideshows.command('recreate')
-    .requiredOption('--tiktok-url <url>')
+    .option('--tiktok-url <url>', 'A public TikTok photo slideshow')
+    .option('--slideshow-idea-id <id>', 'A Slideshow Ideas library slideshow, instead of --tiktok-url')
     .option('--product-context-id <id>')
     .option('--instructions <text>')
     .option('--effort <effort>')
-    .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.slideshows.recreate({
-      tiktokUrl: opts.tiktokUrl,
-      productContextId: opts.productContextId,
-      instructions: opts.instructions,
-      effort: opts.effort,
-    }), globals), buildOptions));
+    .action((opts, command) => run(command, async (client, globals) => {
+      if (Boolean(opts.tiktokUrl) === Boolean(opts.slideshowIdeaId)) {
+        throw new Error('Give --tiktok-url or --slideshow-idea-id, one of them.');
+      }
+      const options = { productContextId: opts.productContextId, instructions: opts.instructions, effort: opts.effort };
+      return maybeWait(await client.slideshows.recreate(opts.tiktokUrl
+        ? { ...options, tiktokUrl: opts.tiktokUrl }
+        : { ...options, slideshowIdeaId: opts.slideshowIdeaId }), globals);
+    }, buildOptions));
   slideshows.command('search-photos').argument('<query>').option('--source <source>').option('--cursor <cursor>').action((query, opts, command) => run(command, (client) => client.slideshows.searchPhotos(query, { source: opts.source, cursor: opts.cursor }), buildOptions));
   slideshows.command('save-photos').requiredOption('--photos-json <json>').action((opts, command) => run(command, (client) => client.slideshows.savePhotos(JSON.parse(opts.photosJson)), buildOptions));
   slideshows.command('formats').option('--cursor <cursor>').action((opts, command) => run(command, (client) => client.slideshows.listFormats({ cursor: opts.cursor }), buildOptions));
@@ -720,12 +732,24 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const productContexts = program.command('product-contexts');
   productContexts.command('list').action((_, command) => run(command, (client) => client.productContexts.list(), buildOptions));
   productContexts.command('suggest').requiredOption('--url <url>').action((opts, command) => run(command, (client) => client.productContexts.suggestFromUrl(opts.url), buildOptions));
-  productContexts.command('create').requiredOption('--name <name>').requiredOption('--description <text>').option('--image-url <url>').action((opts, command) => run(command, (client) => client.productContexts.create({ name: opts.name, description: opts.description, imageUrl: opts.imageUrl }), buildOptions));
-  productContexts.command('update').requiredOption('--id <id>').option('--name <name>').option('--description <text>').option('--image-url <url>').option('--remove-image').action((opts, command) => run(command, (client) => client.productContexts.update(opts.id, {
-    name: opts.name,
-    description: opts.description,
-    ...(opts.removeImage ? { imageUrl: null } : opts.imageUrl ? { imageUrl: opts.imageUrl } : {}),
-  }), buildOptions));
+  const photoList = (value?: string) => value === undefined ? undefined : String(value).split(',').map((url) => url.trim()).filter(Boolean);
+  productContexts.command('create').requiredOption('--name <name>').option('--description <text>')
+    .option('--photo-urls <urls>', 'Up to 6 image URLs, comma-separated, in order').option('--image-url <url>', 'One photo (older option)')
+    .action((opts, command) => run(command, (client) => client.productContexts.create({
+      name: opts.name,
+      description: opts.description,
+      photoUrls: photoList(opts.photoUrls),
+      imageUrl: opts.imageUrl,
+    }), buildOptions));
+  productContexts.command('update').requiredOption('--id <id>').option('--name <name>').option('--description <text>')
+    .option('--photo-urls <urls>', 'All photos, comma-separated, in order; replaces the current ones')
+    .option('--image-url <url>').option('--remove-image', 'Remove all photos')
+    .action((opts, command) => run(command, (client) => client.productContexts.update(opts.id, {
+      name: opts.name,
+      description: opts.description,
+      ...(opts.photoUrls !== undefined ? { photoUrls: photoList(opts.photoUrls) } : {}),
+      ...(opts.removeImage ? { imageUrl: null } : opts.imageUrl ? { imageUrl: opts.imageUrl } : {}),
+    }), buildOptions));
 
   const prompts = program.command('prompts');
   prompts.command('save').requiredOption('--kind <kind>').requiredOption('--prompt <text>').action((opts, command) => run(command, (client) => client.prompts.save(opts.kind, opts.prompt), buildOptions));

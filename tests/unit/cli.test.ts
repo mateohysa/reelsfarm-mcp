@@ -179,6 +179,38 @@ describe('cli', () => {
     expect(seen[6]).toEqual(['pc_1', { name: undefined, description: undefined, imageUrl: null }]);
   });
 
+  it('passes MCP 3.12 to 3.14 video, Recreate and product options through the CLI', async () => {
+    const seen: unknown[] = [];
+    const factory = () => createClient({
+      slideshows: { recreate: async (params: unknown) => { seen.push(params); return {}; } },
+      videos: { generateVideo: async (params: unknown) => { seen.push(params); return {}; } },
+      productContexts: {
+        create: async (params: unknown) => { seen.push(params); return {}; },
+        update: async (...args: unknown[]) => { seen.push(args); return {}; },
+      },
+    });
+
+    await runCli(['--agent', 'videos', 'generate', '--prompt', 'A latte', '--aspect-ratio', '21:9', '--camera', 'orbit', '--look', 'golden_hour', '--shots', 'cuts', '--no-improve-prompt'], factory);
+    await runCli(['--agent', 'videos', 'generate', '--prompt', 'A latte'], factory);
+    await runCli(['--agent', 'slideshows', 'recreate', '--slideshow-idea-id', '0123456789abcdef0123', '--product-context-id', 'pc_1'], factory);
+    await runCli(['--agent', 'product-contexts', 'create', '--name', 'Glow serum', '--photo-urls', 'https://a.example/1.png, https://a.example/2.png'], factory);
+    await runCli(['--agent', 'product-contexts', 'update', '--id', 'pc_1', '--photo-urls', ''], factory);
+
+    expect(seen[0]).toMatchObject({ aspectRatio: '21:9', camera: 'orbit', look: 'golden_hour', shots: 'cuts', improvePrompt: false });
+    expect(seen[1]).not.toHaveProperty('improvePrompt');
+    expect(seen[2]).toEqual({ slideshowIdeaId: '0123456789abcdef0123', productContextId: 'pc_1', instructions: undefined, effort: undefined });
+    expect(seen[3]).toEqual({ name: 'Glow serum', description: undefined, photoUrls: ['https://a.example/1.png', 'https://a.example/2.png'], imageUrl: undefined });
+    expect(seen[4]).toEqual(['pc_1', { name: undefined, description: undefined, photoUrls: [] }]);
+  });
+
+  it('asks Recreate for exactly one source', async () => {
+    const recreate = async () => ({});
+    const none = await runCli(['--agent', 'slideshows', 'recreate'], () => createClient({ slideshows: { recreate } }));
+    const both = await runCli(['--agent', 'slideshows', 'recreate', '--tiktok-url', 'https://www.tiktok.com/@a/photo/1', '--slideshow-idea-id', '0123456789abcdef0123'], () => createClient({ slideshows: { recreate } }));
+    expect(none.json).toMatchObject({ ok: false });
+    expect(both.json).toMatchObject({ ok: false });
+  });
+
   it('rejects confirm without a confirmation tool from the prepared result', async () => {
     const result = await runCli(['--agent', 'confirm', 'conf_123', '--tool', 'reelsfarm_get_account'], () => createClient({}));
     expect(result.json).toMatchObject({ ok: false });

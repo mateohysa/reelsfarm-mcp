@@ -51,7 +51,11 @@ if (existsSync(serverSourcePath)) {
   if (serverTools.length === 0) throw new Error('The app MCP tool reference lists no tools');
   const sdkTools = new Set<string>(toolNames);
   const missing = serverTools.filter((name) => !sdkTools.has(name));
-  const extra = toolNames.filter((name) => !serverTools.includes(name));
+  // Face Swap (the ai_clone tools) is turned off since server 3.13: the server still lists these tools and
+  // answers that the feature is off, but the public reference hides them (same rule as the app's
+  // scripts/generate-mcp-tool-reference.ts). The SDK keeps them, so strict tool-surface checks still pass.
+  const hiddenOnServer = (name: string) => name.includes('ai_clone');
+  const extra = toolNames.filter((name) => !serverTools.includes(name) && !hiddenOnServer(name));
   if (missing.length || extra.length) {
     throw new Error(`MCP/SDK tool drift. Missing in SDK: ${missing.join(', ') || 'none'}. Extra in SDK: ${extra.join(', ') || 'none'}.`);
   }
