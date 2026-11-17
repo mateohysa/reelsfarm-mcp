@@ -6,6 +6,7 @@ import type {
   MaybePrepared,
   MutationOptions,
   PageOptions,
+  SeedanceQuality,
   VideoAspectRatio,
   VideoCameraMove,
   VideoCategory,
@@ -22,6 +23,10 @@ import { DomainBase } from './base.js';
 export type VideoArtifact = SlideshowVideoArtifact;
 
 export interface UgcVideoGenerationParams extends MutationOptions {
+  /**
+   * Ordered video parts. Each part can carry up to 6 textItems, with the same fields as slideshow text items
+   * (font, mode, colour, size, slot or point); the older caption and textPosition become one text item.
+   */
   parts?: unknown[];
   hookUrl?: string;
   demoUrl?: string;
@@ -41,9 +46,14 @@ export interface VideoGenerationParams extends MutationOptions {
   durationSeconds?: number;
   /** Defaults to 9:16. 1:1, 3:4, 4:3 and 21:9 are available only with Seedance models. */
   aspectRatio?: VideoAspectRatio;
-  /** Only gemini-omni-1.1-flash offers a choice. Omit it to use the model resolution. */
+  /**
+   * seedance-2.5: 480p, 720p or 1080p (default 1080p). gemini-omni-1.2-flash: 720p or 1080p (default 720p).
+   * Veo models use their own resolution; omit it.
+   */
   resolution?: VideoResolution;
-  /** Must be true for gemini-omni-1.1-flash. */
+  /** seedance-2.5 only, at 720p or 1080p. Defaults to eco. Ignored by other models. */
+  quality?: SeedanceQuality;
+  /** Veo models always include audio. Must be true for gemini-omni-1.2-flash. */
   includeAudio?: boolean;
   /** Library category for the finished video. Defaults to scenes. */
   category?: VideoCategory;

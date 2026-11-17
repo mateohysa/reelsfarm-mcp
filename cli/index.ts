@@ -478,10 +478,14 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--custom-prompt <prompt>')
     .option('--include-audio')
     .option('--script-text <text>')
+    .option('--resolution <resolution>', 'seedance-2.5: 480p, 720p or 1080p')
+    .option('--quality <quality>', 'seedance-2.5 at 720p or 1080p: eco or high')
     .action((opts, command) => run(command, async (client, globals) => maybeWait(await client.hooks.generate({
       avatarUrl: opts.avatarUrl,
       preset: opts.preset,
       model: opts.model,
+      resolution: opts.resolution,
+      quality: opts.quality,
       durationSeconds: opts.duration ? Number(opts.duration) : undefined,
       customPrompt: opts.customPrompt,
       includeAudio: Boolean(opts.includeAudio),
@@ -520,6 +524,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
     .option('--duration <seconds>')
     .option('--aspect-ratio <ratio>')
     .option('--resolution <resolution>')
+    .option('--quality <quality>', 'seedance-2.5 at 720p or 1080p: eco or high')
     .option('--include-audio')
     .option('--category <category>')
     .option('--collection-id <id>')
@@ -541,6 +546,7 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
       durationSeconds: opts.duration ? Number(opts.duration) : undefined,
       aspectRatio: opts.aspectRatio,
       resolution: opts.resolution,
+      quality: opts.quality,
       includeAudio: Boolean(opts.includeAudio),
       category: opts.category,
       collectionId: opts.collectionId,
@@ -735,18 +741,22 @@ export function buildProgram(buildOptions: BuildProgramOptions = {}): Command {
   const photoList = (value?: string) => value === undefined ? undefined : String(value).split(',').map((url) => url.trim()).filter(Boolean);
   productContexts.command('create').requiredOption('--name <name>').option('--description <text>')
     .option('--photo-urls <urls>', 'Up to 6 image URLs, comma-separated, in order').option('--image-url <url>', 'One photo (older option)')
+    .option('--app-store-url <url>', 'App Store link of an app; saves its icon, and its screenshots when no photos are given')
     .action((opts, command) => run(command, (client) => client.productContexts.create({
       name: opts.name,
       description: opts.description,
       photoUrls: photoList(opts.photoUrls),
       imageUrl: opts.imageUrl,
+      appStoreUrl: opts.appStoreUrl,
     }), buildOptions));
   productContexts.command('update').requiredOption('--id <id>').option('--name <name>').option('--description <text>')
     .option('--photo-urls <urls>', 'All photos, comma-separated, in order; replaces the current ones')
     .option('--image-url <url>').option('--remove-image', 'Remove all photos')
+    .option('--app-store-url <url>', 'App Store link of the app').option('--remove-app-store-url', 'Remove the App Store link and icon')
     .action((opts, command) => run(command, (client) => client.productContexts.update(opts.id, {
       name: opts.name,
       description: opts.description,
+      ...(opts.removeAppStoreUrl ? { appStoreUrl: null } : opts.appStoreUrl ? { appStoreUrl: opts.appStoreUrl } : {}),
       ...(opts.photoUrls !== undefined ? { photoUrls: photoList(opts.photoUrls) } : {}),
       ...(opts.removeImage ? { imageUrl: null } : opts.imageUrl ? { imageUrl: opts.imageUrl } : {}),
     }), buildOptions));

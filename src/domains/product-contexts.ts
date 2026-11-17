@@ -12,22 +12,32 @@ export interface ProductContextDetails {
   photoUrls?: string[];
   /** The older one-photo field. Prefer photoUrls. */
   imageUrl?: string;
+  /**
+   * App Store link of an app (apps.apple.com/.../id123). The server keeps the app icon, and when no photos are
+   * given it saves up to 6 of the app's App Store screenshots as photos.
+   */
+  appStoreUrl?: string;
 }
 
 export class ProductContextsDomain extends DomainBase {
   /**
-   * Each product with photos (in order; imageUrl is the first) and describing (true while the AI still writes
-   * the name and description of a product made from an uploaded photo file).
+   * Each product with photos (in order; imageUrl is the first), appStoreUrl and iconUrl for an app, and
+   * describing (true while the AI still writes the name and description of a product made from an uploaded
+   * photo file).
    */
   list() { return this.call('reelsfarm_list_product_contexts'); }
-  /** Name and description from a product page, plus photos: photo links found on it. */
+  /**
+   * Name and description from a product page, plus photos: photo links found on it. For an App Store link it
+   * also returns app (appStoreUrl, iconUrl, developer, category); pass that appStoreUrl to create.
+   */
   suggestFromUrl(url: string) { return this.call('reelsfarm_suggest_product_context_from_url', { url }); }
   create(params: ProductContextDetails & MutationOptions) { return this.call('reelsfarm_create_product_context', { ...params }); }
   /**
    * Change the name, description or photos. photoUrls replaces all photos in order; an empty list or
-   * imageUrl null removes them. A photo no product uses any more goes to Trash.
+   * imageUrl null removes them. A photo no product uses any more goes to Trash. appStoreUrl null removes the
+   * app link and icon; the photos stay.
    */
-  update(productContextId: string, params: Partial<Omit<ProductContextDetails, 'imageUrl'>> & { imageUrl?: string | null } & MutationOptions) {
+  update(productContextId: string, params: Partial<Omit<ProductContextDetails, 'imageUrl' | 'appStoreUrl'>> & { imageUrl?: string | null; appStoreUrl?: string | null } & MutationOptions) {
     return this.call('reelsfarm_update_product_context', { productContextId, ...params });
   }
 }

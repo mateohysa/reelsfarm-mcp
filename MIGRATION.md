@@ -1,7 +1,11 @@
-# ReelsFarm MCP 3.14 migration
+# ReelsFarm MCP 3.17 migration
 
-SDK `3.14.0` requires ReelsFarm MCP contract `2026-11-08.1`. Tool names are
-unchanged, and most code needs no changes.
+SDK `3.17.0` requires ReelsFarm MCP contract `2026-11-16.1`. Tool names are
+unchanged, and code written for 3.14 needs no changes. The additions are in
+`CHANGELOG.md`: App Store products, `gpt-image-2.6`, and Seedance 2.5
+`resolution` and `quality`. Account lists no longer carry `managed`.
+
+## From 3.11 to 3.14
 
 - `RecreateSlideshowParams` is now a type that takes `tiktokUrl` or
   `slideshowIdeaId`, not an interface. Code that extends it with `interface ...

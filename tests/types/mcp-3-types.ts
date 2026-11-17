@@ -118,3 +118,12 @@ export const recreateFromBoth: RecreateSlideshowParams = { tiktokUrl: 'https://w
 export const recreateFromNothing: RecreateSlideshowParams = { productContextId: 'pc_1' };
 
 export const productWithPhotos: ProductContextDetails = { name: 'Glow serum', photoUrls: ['/api/assets/user-uploads?key=u/products/a.png', '/api/assets/user-uploads?key=u/products/b.png'] };
+
+// Server 3.15 to 3.17: App Store products, GPT Image 2.6, and Seedance 2.5 sizes and quality.
+export const appProduct: ProductContextDetails = { name: 'My app', appStoreUrl: 'https://apps.apple.com/us/app/example/id123456789' };
+export const defaultImageModel: AvatarGenerationParams['model'] = 'gpt-image-2.6';
+export const seedanceVideo: VideoGenerationParams = { prompt: 'A latte on a cafe table', model: 'seedance-2.5', resolution: '480p' };
+export const ecoVideo: VideoGenerationParams = { prompt: 'A latte on a cafe table', model: 'seedance-2.5', resolution: '1080p', quality: 'eco' };
+export const omniVideo: VideoGenerationParams = { prompt: 'A latte on a cafe table', model: 'gemini-omni-1.2-flash', includeAudio: true };
+// @ts-expect-error quality is eco or high.
+export const badQuality: VideoGenerationParams = { prompt: 'A latte', quality: 'medium' };

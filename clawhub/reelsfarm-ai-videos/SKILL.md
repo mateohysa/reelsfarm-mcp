@@ -55,7 +55,7 @@ reelsfarm videos generate --prompt "Slow push-in on a latte on a sunny cafe tabl
 reelsfarm videos status --job-id <jobId> --agent
 ```
 
-- Models: `seedance-2.5` (default), `seedance-2`, `seedance-2-fast`, `veo-3.1`, `veo-3.1-fast`, and `gemini-omni-1.1-flash` (needs `--include-audio`). Each supports its own durations, aspect ratios (`9:16`, `16:9`, `1:1`), and resolutions (`720p`, `1080p`). Read them under `videoGeneration` in `reelsfarm account pricing --agent` before you choose.
+- Models: `seedance-2.5` (default; `--resolution 480p|720p|1080p`, and `--quality eco|high` at 720p or 1080p, where eco is cheaper), `veo-3.1`, `veo-3.1-fast` (both always with audio), and `gemini-omni-1.2-flash` (needs `--include-audio`). The retired keys `seedance-2`, `seedance-2-fast` and `gemini-omni-1.1-flash` still run on the current models. Each model supports its own durations and aspect ratios (Seedance: `9:16`, `16:9`, `1:1`, `3:4`, `4:3`, `21:9`; Veo and Omni: `9:16`, `16:9`). Read them under `videoGeneration` in `reelsfarm account pricing --agent` before you choose.
 - Frames: `--first-frame-url` and an optional `--last-frame-url`.
 - References: `--reference-image-urls` (up to three), plus `--reference-video-url` and `--reference-audio-url` on Seedance models only. Don't combine frames with references.
 - With a start frame of a person, `--motion-preset` opens with a reaction: `shocked`, `grateful`, `looks_up`, `fed_up`, `confident`, `nod_smile`, or `subtle_pan`.

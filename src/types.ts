@@ -157,11 +157,17 @@ export type AvatarModel =
   | 'nano-banana-pro'
   | 'nano-banana-2-pro'
   | 'nano-banana-2-1'
+  /** Retired: runs on GPT Image 2.6. */
   | 'gpt-image-2'
   | 'gpt-image-2.5-sunburst'
+  /** GPT Image 2.6, the dashboard default. */
+  | 'gpt-image-2.6'
   | 'seedream-5-pro'
   | 'flux-3';
-/** `ultra` (2K) and `max` (4K) are FLUX 3 sizes; GPT Image and Seedream treat them as `high`. */
+/**
+ * Image models have no quality choice. `quality` picks a size only for Nano Banana Pro (`high` 2K, `max` 4K)
+ * and FLUX 3 (`high` 1.5K, `ultra` 2K, `max` 4K); other models accept and ignore it.
+ */
 export type AvatarGenerationQuality = 'low' | 'medium' | 'high' | 'basic' | 'ultra' | 'max';
 export type AvatarStyleMode = 'default' | 'pinterest' | 'linkedin';
 export type ImageAspectRatio = '9:16' | '4:5' | '3:4' | '1:1' | '16:9';
@@ -180,13 +186,23 @@ export type HookGenerationPreset =
   | 'confident'
   | 'nod_smile'
   | 'surprised_reaction';
+/**
+ * Videos workbench models. The retired keys still run: seedance-2 as seedance-2.5 high 1080p, seedance-2-fast
+ * as seedance-2.5 eco 720p, and gemini-omni-1.1-flash as gemini-omni-1.2-flash.
+ */
 export type VideoGenerationModel =
   | 'seedance-2.5'
-  | 'seedance-2'
-  | 'seedance-2-fast'
   | 'veo-3.1-fast'
   | 'veo-3.1'
+  | 'gemini-omni-1.2-flash'
+  | 'seedance-2'
+  | 'seedance-2-fast'
   | 'gemini-omni-1.1-flash';
+/**
+ * Seedance 2.5 quality at 720p or 1080p: eco makes the clip at 480p and upscales it, for a lower price; high
+ * makes it at the chosen resolution. 480p has no quality.
+ */
+export type SeedanceQuality = 'eco' | 'high';
 /** Seedance models make all six; Veo and Omni make 9:16 and 16:9. */
 export type VideoAspectRatio = '9:16' | '16:9' | '1:1' | '3:4' | '4:3' | '21:9';
 /** Camera move for a whole video clip, on every model. */
@@ -195,8 +211,9 @@ export type VideoCameraMove = 'static' | 'handheld' | 'push_in' | 'pull_back' | 
 export type VideoLook = 'phone_ugc' | 'studio_product' | 'golden_hour' | 'cinematic' | 'flash_night' | 'vintage_film';
 /** One continuous shot, or two or three shots joined by hard cuts (Seedance, 8 seconds or more). */
 export type VideoShots = 'one' | 'cuts';
-export type VideoResolution = '720p' | '1080p';
-/** Videos library category. People also includes avatar hooks and AI Clone videos. */
+/** 480p is Seedance 2.5 only. Veo models use their own resolution. */
+export type VideoResolution = '480p' | '720p' | '1080p';
+/** Videos library category. People also includes avatar hooks. */
 export type VideoCategory = 'people' | 'product' | 'scenes';
 /** Images workbench category of a generated image. */
 export type ImageCategory = 'people' | 'product' | 'infographics';

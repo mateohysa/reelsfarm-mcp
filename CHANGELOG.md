@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.17.0 - 2026-11-17
+
+- Match server 3.17.0 and contract `2026-11-16.1`. The 177 tool names are
+  unchanged.
+- Products (server 3.15): `rf.productContexts.create(...)` and `update(...)`
+  take `appStoreUrl`, the App Store link of an app. The server keeps the app
+  icon and, when no photos are given, saves up to 6 of the app's screenshots as
+  photos. On update, `appStoreUrl: null` removes the link and the icon.
+  `list()` returns `appStoreUrl` and `iconUrl`, and `suggestFromUrl` returns
+  `app` for an App Store link. CLI: `product-contexts create|update
+  --app-store-url`, and `update --remove-app-store-url`.
+- Images (server 3.16): `AvatarModel` adds `gpt-image-2.6`, the dashboard
+  default; the retired `gpt-image-2` key runs on it. Image models have no
+  quality choice: `quality` picks a size only for Nano Banana Pro and FLUX 3.
+- Videos (server 3.16): `seedance-2.5` takes `resolution` `480p`, `720p` or
+  `1080p` and, at 720p or 1080p, `quality` `eco` (cheaper, upscaled) or `high`
+  (`SeedanceQuality`), on `rf.videos.generateVideo(...)` and
+  `rf.hooks.generate(...)`. `VideoGenerationModel` adds
+  `gemini-omni-1.2-flash`; `seedance-2`, `seedance-2-fast` and
+  `gemini-omni-1.1-flash` still run on the current models. Video parts take
+  `textItems`. CLI: `videos generate --quality`, `hooks generate --resolution
+  --quality`.
+- Social (server 3.17): Instagram and Facebook connect natively for every
+  account, and account lists no longer carry `managed`.
+
 ## 3.14.0 - 2026-11-08
 
 - Match server 3.14.0 and contract `2026-11-08.1`. The 177 tool names are

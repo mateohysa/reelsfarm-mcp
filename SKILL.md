@@ -4,7 +4,7 @@ Use the `reelsfarm` CLI to create, manage, schedule, and publish ReelsFarm UGC
 content from an AI agent. The CLI is designed for universal shell-capable agents
 such as Codex, Claude Code, OpenClaw, and similar local assistants.
 
-This skill targets SDK and server `3.14.0` with MCP contract `2026-11-08.1`.
+This skill targets SDK and server `3.17.0` with MCP contract `2026-11-16.1`.
 
 ## Install and Auth
 
@@ -167,11 +167,14 @@ reelsfarm confirm <confirmationId> --tool <confirmation.tool> --agent
 reelsfarm videos status --job-id <jobId> --agent
 ```
 
-Models are `seedance-2.5` (default), `seedance-2`, `seedance-2-fast`, `veo-3.1`,
-`veo-3.1-fast`, and `gemini-omni-1.1-flash`. Each model supports its own
-durations, aspect ratios, and resolutions. Read them under `videoGeneration`
-in `reelsfarm account pricing --agent` before you choose.
-`gemini-omni-1.1-flash` needs `--include-audio`. Use `--first-frame-url` and
+Models are `seedance-2.5` (default), `veo-3.1`, `veo-3.1-fast`, and
+`gemini-omni-1.2-flash`. The retired keys `seedance-2`, `seedance-2-fast` and
+`gemini-omni-1.1-flash` still run on the current models. Each model supports its
+own durations, aspect ratios, and resolutions. Read them under
+`videoGeneration` in `reelsfarm account pricing --agent` before you choose.
+`seedance-2.5` takes `--resolution 480p|720p|1080p` and, at 720p or 1080p,
+`--quality eco|high` (eco is cheaper). Veo models always include audio.
+`gemini-omni-1.2-flash` needs `--include-audio`. Use `--first-frame-url` and
 `--last-frame-url` for frames, or `--reference-image-urls`,
 `--reference-video-url`, and `--reference-audio-url` for references. Do not
 combine frames with references. Seedance models alone accept video and audio
@@ -310,9 +313,8 @@ Use only `connectionId`, `tiktokPublishMode`, and `tiktokPrivacyLevel` in MCP
 3.0 publishing targets. Do not use `socialConnectionId`,
 `externalSocialAccountId`, or `tiktokPostMode`.
 
-An account with `managed: true` was connected by ReelsFarm through its managed
-Instagram or Facebook integration. Publish to it like any other integration
-account.
+Instagram (Business or Creator) and Facebook Page accounts connect natively in
+the dashboard, the same as TikTok and YouTube.
 
 Inspect scheduled publishing:
 

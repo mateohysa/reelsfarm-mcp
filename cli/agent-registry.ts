@@ -92,7 +92,7 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   }),
   fromTool('hooks.generate', 'reelsfarm hooks generate --avatar-url <url> [--preset <preset>] [--model <model>] [--duration <seconds>] [--custom-prompt <prompt>]', 'Prepare or run conversational hook video generation.', 'reelsfarm_prepare_generate_hook', {
     requiredFlags: ['--avatar-url'],
-    optionalFlags: ['--preset', '--model', '--duration', '--custom-prompt', '--include-audio', '--script-text', '--wait', '--yes', '--dry-run'],
+    optionalFlags: ['--preset', '--model', '--duration', '--custom-prompt', '--include-audio', '--script-text', '--resolution', '--quality', '--wait', '--yes', '--dry-run'],
     examples: ['reelsfarm hooks generate --avatar-url https://example.com/avatar.png --agent'],
   }),
   fromTool('hooks.import-capabilities', 'reelsfarm hooks import-capabilities', 'Get hook import profiles and health.', 'reelsfarm_get_hook_import_capabilities', {
@@ -115,7 +115,7 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   }),
   fromTool('videos.generate', 'reelsfarm videos generate --prompt <prompt> [--model <model>] [--duration <seconds>] [--aspect-ratio <ratio>] [--first-frame-url <url>] [--reference-image-urls <urls>]', 'Prepare or run a Videos workbench generation from a prompt, frames, or reference media.', 'reelsfarm_prepare_generate_video', {
     requiredFlags: ['--prompt'],
-    optionalFlags: ['--model', '--duration', '--aspect-ratio', '--resolution', '--include-audio', '--category', '--collection-id', '--first-frame-url', '--last-frame-url', '--reference-image-urls', '--reference-video-url', '--reference-audio-url', '--conversation-id', '--motion-preset', '--no-natural-speech', '--wait', '--yes', '--dry-run'],
+    optionalFlags: ['--model', '--duration', '--aspect-ratio', '--resolution', '--quality', '--include-audio', '--category', '--collection-id', '--first-frame-url', '--last-frame-url', '--reference-image-urls', '--reference-video-url', '--reference-audio-url', '--conversation-id', '--motion-preset', '--no-natural-speech', '--no-improve-prompt', '--camera', '--look', '--shots', '--wait', '--yes', '--dry-run'],
     examples: ['reelsfarm videos generate --prompt "Slow push-in on a latte on a cafe table" --model seedance-2.5 --duration 8 --aspect-ratio 9:16 --agent'],
   }),
   fromTool('videos.status', 'reelsfarm videos status --job-id <id>', 'Get Videos workbench generation status.', 'reelsfarm_get_video_generation_status', {
@@ -252,11 +252,11 @@ export const agentCommandRegistry: AgentCommandInfo[] = [
   fromTool('product-contexts.suggest', 'reelsfarm product-contexts suggest --url <url>', 'Suggest product context from a page URL.', 'reelsfarm_suggest_product_context_from_url', {
     requiredFlags: ['--url'], examples: ['reelsfarm product-contexts suggest --url https://example.com/product --agent'],
   }),
-  fromTool('product-contexts.create', 'reelsfarm product-contexts create --name <name> --description <text> [--image-url <url>]', 'Create a product context, optionally with a product photo.', 'reelsfarm_create_product_context', {
-    requiredFlags: ['--name', '--description'], optionalFlags: ['--image-url', '--yes', '--dry-run'], examples: ['reelsfarm product-contexts create --name Serum --description "Vitamin C serum" --agent'],
+  fromTool('product-contexts.create', 'reelsfarm product-contexts create --name <name> [--description <text>] [--photo-urls <urls>] [--app-store-url <url>]', 'Create a product with up to 6 photos, or an app from its App Store link.', 'reelsfarm_create_product_context', {
+    requiredFlags: ['--name'], optionalFlags: ['--description', '--photo-urls', '--image-url', '--app-store-url', '--yes', '--dry-run'], examples: ['reelsfarm product-contexts create --name Serum --description "Vitamin C serum" --agent', 'reelsfarm product-contexts create --name "My app" --app-store-url https://apps.apple.com/us/app/example/id123456789 --agent'],
   }),
-  fromTool('product-contexts.update', 'reelsfarm product-contexts update --id <id> [--name <name>] [--description <text>] [--image-url <url>] [--remove-image]', 'Change a product context, or its photo.', 'reelsfarm_update_product_context', {
-    requiredFlags: ['--id'], optionalFlags: ['--name', '--description', '--image-url', '--remove-image', '--yes', '--dry-run'], examples: ['reelsfarm product-contexts update --id pc_123 --image-url https://example.com/app.png --agent'],
+  fromTool('product-contexts.update', 'reelsfarm product-contexts update --id <id> [--name <name>] [--description <text>] [--photo-urls <urls>] [--app-store-url <url>] [--remove-image]', 'Change a product: name, description, photos or App Store link.', 'reelsfarm_update_product_context', {
+    requiredFlags: ['--id'], optionalFlags: ['--name', '--description', '--photo-urls', '--image-url', '--remove-image', '--app-store-url', '--remove-app-store-url', '--yes', '--dry-run'], examples: ['reelsfarm product-contexts update --id pc_123 --photo-urls https://example.com/a.png,https://example.com/b.png --agent'],
   }),
   fromTool('prompts.save', 'reelsfarm prompts save --kind <image|slideshow> --prompt <text>', 'Save a prompt to the prompt library.', 'reelsfarm_save_prompt', {
     requiredFlags: ['--kind', '--prompt'], optionalFlags: ['--yes', '--dry-run'], examples: ['reelsfarm prompts save --kind slideshow --prompt "5 slides about slow mornings" --agent'],

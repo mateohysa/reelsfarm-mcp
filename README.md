@@ -8,8 +8,8 @@ Typed TypeScript SDK and CLI for the ReelsFarm MCP server.
 
 ## Version 3.11
 
-SDK `3.14.0` matches ReelsFarm MCP server `3.14.0` and contract
-`2026-11-08.1`. It tracks all 177 public tools. Mutation and generation results
+SDK `3.17.0` matches ReelsFarm MCP server `3.17.0` and contract
+`2026-11-16.1`. It tracks all 177 public tools. Mutation and generation results
 include explicit ReelsFarm provenance, execution state, and an `assetCreated`
 completion signal.
 
@@ -62,13 +62,13 @@ it with the `confirmationId` after the user approves. Trusted applications can s
 Autopilot connections execute the capabilities enabled by their server-owned
 connection policy without an extra SDK approval step.
 
-Use `nano-banana-2-1` for Nano Banana 2.1. The legacy `nano-banana-2-pro` key
-also uses 2.1. Use `gpt-image-2.5-sunburst` as the public GPT Image 2.5 model
-key. GPT Image 2 and GPT Image 2.5 accept `low`, `medium`, or `high` quality.
-Seedream 5.0 Pro accepts `basic` or `high`. FLUX 3 (`flux-3`) accepts `basic`
-(1K), `high` (about 2 megapixels), `ultra` (2K), or `max` (4K); bigger sizes
-cost more credits, and the prepared result's estimate follows the size. Omit
-`quality` for Nano Banana models.
+`gpt-image-2.6` (GPT Image 2.6) is the dashboard default. Use `nano-banana-2-1`
+for Nano Banana 2.1. The legacy `nano-banana-2-pro` key also uses 2.1, and the
+retired `gpt-image-2` key uses GPT Image 2.6. Use `gpt-image-2.5-sunburst` for
+GPT Image 2.5. Image models have no quality choice: `quality` picks a size only
+for Nano Banana Pro (`high` 2K, `max` 4K) and FLUX 3 (`flux-3`: `high` 1.5K,
+`ultra` 2K, `max` 4K). Bigger sizes cost more credits, and the prepared result's
+estimate follows the size. Other models accept `quality` and ignore it.
 
 ## Job waits and publishing discovery
 
@@ -102,9 +102,9 @@ Instagram integration accounts or photo posts. Check that the selected
 account's `settingsSchema` includes it before sending it. `instagramTestReel`
 is a separate setting.
 
-Connected and social account lists mark an account `managed: true` when
-ReelsFarm connected the Instagram or Facebook account through its managed
-integration. Publish to it like any other integration account.
+Instagram (Business or Creator) and Facebook Page accounts connect natively in
+the dashboard, the same as TikTok and YouTube. Since server 3.17 account lists
+no longer carry `managed`.
 
 ## Conversational generation
 
@@ -201,15 +201,17 @@ to send the prompt exactly as written.
       console.log(status.video?.id); // Publish it with contentType UGC_VIDEO.
     }
 
-The models are `seedance-2.5` (the default), `seedance-2`, `seedance-2-fast`,
-`veo-3.1`, `veo-3.1-fast`, and `gemini-omni-1.1-flash`. Each model supports its
+The models are `seedance-2.5` (the default; 480p, 720p or 1080p, and `quality`
+`eco` or `high` at 720p and 1080p), `veo-3.1`, `veo-3.1-fast`, and
+`gemini-omni-1.2-flash`. The retired keys `seedance-2`, `seedance-2-fast` and
+`gemini-omni-1.1-flash` still run on the current models. Each model supports its
 own durations, aspect ratios, and resolutions. `rf.account.getGenerationPricing()`
 lists them with per-second prices under `videoGeneration`. Poll with
 `rf.videos.getGenerationStatus(jobId, { waitMs: 25000 })`. A completed job
 returns the finished library video in `video`.
 
-One video job runs at a time per account, across hooks, AI Clone, and the
-Videos workbench. Another request fails with code `VIDEO_JOB_IN_PROGRESS` and
+One video job runs at a time per account, across hooks and the Videos
+workbench. Another request fails with code `VIDEO_JOB_IN_PROGRESS` and
 names the active job. Wait for that job to finish, then retry with a new
 idempotency key. For an avatar-led hook clip, use `rf.hooks.generate(...)`.
 
@@ -264,8 +266,8 @@ lists return `totalCount`, and the first asset page returns the category
 `totalCount`. Use these totals instead of counting a page.
 
 The same MCP contracts now cover the unified gallery, personal media
-collections, community images, hook import health and jobs, AI Clone voice
-search, product-context URL suggestions, saved character identity extraction,
+collections, community images, hook import health and jobs, product-context
+URL suggestions, saved character identity extraction,
 and all eight creative Trash item types: avatars, product placements, videos,
 slideshows, stored assets, saved characters, drafts, and product contexts. Use the
 exact type and ID returned by `rf.trash.list()` when restoring. Permanent deletion
@@ -307,7 +309,6 @@ method because that form cannot validate state by itself.
     reelsfarm videos generate --prompt "Slow push-in on a latte" --model seedance-2.5 --duration 8 --aspect-ratio 9:16 --wait
     reelsfarm videos list --category product
     reelsfarm media-collections gallery --kinds COLLECTION,AVATAR
-    reelsfarm ai-clones voices --search warm
     reelsfarm hooks import-capabilities
     reelsfarm posts preflight --content-type SLIDESHOW --content-id 11111111-1111-4111-8111-111111111111 --publish-format VIDEO --connection-ids 22222222-2222-4222-8222-222222222222 --agent
     reelsfarm posts list --json
