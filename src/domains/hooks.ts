@@ -1,5 +1,5 @@
 import type { JobStatusOptions } from '../types.js';
-import type { HookGenerationModel, HookGenerationPreset, JsonObject, MaybePrepared, MutationOptions, PageOptions } from '../types.js';
+import type { HookGenerationModel, HookGenerationPreset, JsonObject, MaybePrepared, MutationOptions, PageOptions, SeedanceQuality, VideoResolution } from '../types.js';
 import { ReelsFarmJob } from '../jobs/job.js';
 import { prepareAndConfirm } from '../utils/prepare-confirm.js';
 import { unwrapStatusWithProvenance } from '../utils/provenance.js';
@@ -8,7 +8,12 @@ import { DomainBase } from './base.js';
 export interface HookGenerationParams extends MutationOptions {
   avatarUrl: string;
   preset?: HookGenerationPreset;
+  /** seedance-2 and seedance-2-fast still run, on Seedance 2.5 high 1080p and eco 720p. */
   model?: HookGenerationModel;
+  /** seedance-2.5 only: 480p, 720p or 1080p (default 1080p). Veo uses its own resolution. */
+  resolution?: VideoResolution;
+  /** seedance-2.5 only, at 720p or 1080p. Defaults to eco. */
+  quality?: SeedanceQuality;
   durationSeconds?: number;
   includeAudio?: boolean;
   scriptText?: string;

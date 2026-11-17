@@ -49,11 +49,11 @@ Say an image, video, or slideshow exists only when the response shows `execution
 ## Generate
 
 ```bash
-reelsfarm avatars generate --prompt "Woman in her 20s taking a mirror selfie in a sunny kitchen, phone camera look" --model gpt-image-2.5-sunburst --aspect-ratio 9:16 --quality high --agent
+reelsfarm avatars generate --prompt "Woman in her 20s taking a mirror selfie in a sunny kitchen, phone camera look" --model gpt-image-2.6 --aspect-ratio 9:16 --agent
 ```
 
-- Models: `gpt-image-2.5-sunburst`, `gpt-image-2`, `nano-banana-2-1`, `nano-banana-2-pro`, `nano-banana-pro`, `seedream-5-pro`, and `flux-3`.
-- `--quality`: `low`, `medium`, or `high` for GPT Image. Leave it out for Nano Banana. FLUX 3 takes `basic`, `high`, `ultra` (2K), or `max` (4K); bigger sizes cost more credits.
+- Models: `gpt-image-2.6` (the dashboard default), `gpt-image-2.5-sunburst`, `nano-banana-2-1`, `nano-banana-pro`, `seedream-5-pro`, and `flux-3`. The legacy `nano-banana-2-pro` key runs on Nano Banana 2.1, and the retired `gpt-image-2` key on GPT Image 2.6.
+- `--quality` picks a size only for Nano Banana Pro (`high` 2K, `max` 4K) and FLUX 3 (`high` 1.5K, `ultra` 2K, `max` 4K); bigger sizes cost more credits. Other models ignore it.
 - `--aspect-ratio`: `9:16`, `4:5`, `3:4`, `1:1`, or `16:9`.
 - `--style-mode`: `default`, `pinterest`, or `linkedin`.
 - `--reference-url` starts from an existing ReelsFarm image.
@@ -73,7 +73,7 @@ Templates are reference photos of people and settings. Pass one as `--reference-
 Keep the same person and change one thing at a time by continuing the conversation:
 
 ```bash
-reelsfarm avatars generate --prompt "Same person, tighter crop, holding a coffee cup" --model gpt-image-2.5-sunburst --quality high --reference-url <previous image URL> --conversation-id <conversationId> --parent-generation-id <generationId> --agent
+reelsfarm avatars generate --prompt "Same person, tighter crop, holding a coffee cup" --model gpt-image-2.6 --reference-url <previous image URL> --conversation-id <conversationId> --parent-generation-id <generationId> --agent
 reelsfarm image-generations conversation --conversation-id <conversationId> --agent
 ```
 
